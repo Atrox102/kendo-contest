@@ -10,18 +10,24 @@
     "noEmit": true,
     "moduleResolution": "Bundler",
     "target": "ES2022",
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "typeRoots": [
+      "node_modules/@types",
+      "types"
+    ],
     "lib": [
       "DOM",
       "DOM.Iterable",
       "ESNext"
     ],
-    "types": [
-      "vite/client",
-      "vike-react"
-    ],
     "jsx": "react-jsx",
     "jsxImportSource": "react"
   },
+  "include": [
+    "**/*",
+    "types/**/*"
+  ],
   "exclude": [
     "dist"
   ]
