@@ -1,0 +1,7 @@
+onlyBuiltDependencies:
+  - '@progress/kendo-licensing'
+  - '@tailwindcss/oxide'
+  - better-sqlite3
+  - core-js
+  - esbuild
+  - sqlite3
