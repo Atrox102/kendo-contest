@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Grid, GridColumn, GridToolbar } from "@progress/kendo-react-grid";
 import { Button } from "@progress/kendo-react-buttons";
 import { Dialog, DialogActionsBar } from "@progress/kendo-react-dialogs";
@@ -13,8 +13,11 @@ interface Product {
   name: string;
   description?: string;
   defaultPrice: number;
-  taxRate: number;
-  taxName?: string;
+  taxes: {
+    taxName: string;
+    taxRate: number;
+    isDefault?: boolean;
+  }[];
 }
 
 const ProductForm = ({ product, onSubmit, onCancel }: {
@@ -22,15 +25,34 @@ const ProductForm = ({ product, onSubmit, onCancel }: {
   onSubmit: (data: Product) => void;
   onCancel: () => void;
 }) => {
+  const [taxes, setTaxes] = useState(
+    product?.taxes?.length ? product.taxes : [{ taxName: 'VAT', taxRate: 0, isDefault: true }]
+  );
+
   const handleSubmit = (dataItem: any) => {
     onSubmit({
       id: product?.id,
       name: dataItem.name,
       description: dataItem.description || '',
       defaultPrice: parseFloat(dataItem.price) || 0,
-      taxRate: parseFloat(dataItem.taxRate) || 0,
-      taxName: dataItem.taxName || 'VAT',
+      taxes: taxes,
     });
+  };
+
+  const addTax = () => {
+    setTaxes([...taxes, { taxName: '', taxRate: 0, isDefault: false }]);
+  };
+
+  const removeTax = (index: number) => {
+    if (taxes.length > 1) {
+      setTaxes(taxes.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateTax = (index: number, field: string, value: any) => {
+    const updatedTaxes = [...taxes];
+    updatedTaxes[index] = { ...updatedTaxes[index], [field]: value };
+    setTaxes(updatedTaxes);
   };
 
   return (
@@ -40,8 +62,6 @@ const ProductForm = ({ product, onSubmit, onCancel }: {
         name: product?.name || '',
         description: product?.description || '',
         price: product?.defaultPrice || 0,
-        taxRate: product?.taxRate || 0,
-        taxName: product?.taxName || 'VAT',
       }}
       render={(formRenderProps) => (
         <FormElement style={{ maxWidth: 650 }}>
@@ -71,25 +91,75 @@ const ProductForm = ({ product, onSubmit, onCancel }: {
               min={0}
               validator={(value) => !value || value <= 0 ? "Price must be greater than 0" : ""}
             />
+          </fieldset>
+
+          <fieldset className="k-form-fieldset">
+            <legend className="k-form-legend">
+              Tax Information
+              <Button
+                type="button"
+                onClick={addTax}
+                className="ml-2"
+                size="small"
+                themeColor="primary"
+                fillMode="outline"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Tax
+              </Button>
+            </legend>
             
-            <Field
-              name="taxRate"
-              component={NumericTextBox}
-              label="Tax Rate (%)"
-              required
-              format="p2"
-              min={0}
-              max={1}
-              step={0.01}
-              validator={(value) => value < 0 || value > 1 ? "Tax rate must be between 0% and 100%" : ""}
-            />
-            
-            <Field
-              name="taxName"
-              component={Input}
-              label="Tax Name"
-              placeholder="VAT"
-            />
+            {taxes.map((tax, index) => (
+              <div key={index} className="k-form-field-wrap" style={{ border: '1px solid #ddd', padding: '10px', marginBottom: '10px', borderRadius: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <h4>Tax {index + 1}</h4>
+                  {taxes.length > 1 && (
+                    <Button
+                      type="button"
+                      onClick={() => removeTax(index)}
+                      size="small"
+                      themeColor="error"
+                      fillMode="outline"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+                
+                <div style={{ marginBottom: '10px' }}>
+                  <label className="k-label">Tax Name</label>
+                  <Input
+                    value={tax.taxName}
+                    onChange={(e) => updateTax(index, 'taxName', e.target.value)}
+                    placeholder="e.g., VAT, GST, Sales Tax"
+                  />
+                </div>
+                
+                <div style={{ marginBottom: '10px' }}>
+                  <label className="k-label">Tax Rate (%)</label>
+                  <NumericTextBox
+                    value={tax.taxRate}
+                    onChange={(e) => updateTax(index, 'taxRate', e.target.value || 0)}
+                    format="n2"
+                    min={0}
+                    max={100}
+                    step={0.01}
+                  />
+                </div>
+                
+                <div>
+                  <label className="k-checkbox-label">
+                    <input
+                      type="checkbox"
+                      className="k-checkbox"
+                      checked={tax.isDefault || false}
+                      onChange={(e) => updateTax(index, 'isDefault', e.target.checked)}
+                    />
+                    Default Tax
+                  </label>
+                </div>
+              </div>
+            ))}
           </fieldset>
           
           <DialogActionsBar>
@@ -158,11 +228,7 @@ export default function ProductManagement() {
         name: data.name,
         description: data.description,
         defaultPrice: data.defaultPrice,
-        taxes: [{
-          taxName: data.taxName || "VAT",
-          taxRate: data.taxRate,
-          isDefault: true
-        }]
+        taxes: data.taxes
       });
     } else {
       // For create: exclude id and ensure required fields are present
@@ -170,13 +236,28 @@ export default function ProductManagement() {
         name: data.name,
         description: data.description,
         defaultPrice: data.defaultPrice,
-        taxes: [{
-          taxName: data.taxName || "VAT",
-          taxRate: data.taxRate,
-          isDefault: true
-        }]
+        taxes: data.taxes
       });
     }
+  };
+
+  const TaxesCell = (props: any) => {
+    const { dataItem } = props;
+    const taxes = dataItem.taxes || [];
+    
+    return (
+      <td>
+        <div className="space-y-1">
+          {taxes.map((tax: any, index: number) => (
+            <div key={index} className="text-sm">
+              <span className="font-medium">{tax.taxName}</span>: {(tax.taxRate || 0).toFixed(2)}%
+              {tax.isDefault && <span className="ml-1 text-xs text-blue-600">(Default)</span>}
+            </div>
+          ))}
+          {taxes.length === 0 && <span className="text-gray-400">No taxes</span>}
+        </div>
+      </td>
+    );
   };
 
   const ActionCell = (props: any) => {
@@ -236,8 +317,8 @@ export default function ProductManagement() {
           </div>
         </GridToolbar>
         
-        <GridColumn field="name" title="Product Name" width="250px" />
-        <GridColumn field="description" title="Description" width="300px" />
+        <GridColumn field="name" title="Product Name" width="200px" />
+        <GridColumn field="description" title="Description" width="250px" />
         <GridColumn 
           field="defaultPrice" 
           title="Price" 
@@ -246,11 +327,11 @@ export default function ProductManagement() {
           className="text-right"
         />
         <GridColumn 
-          field="taxRate" 
-          title="Tax Rate" 
-          width="120px"
-          format="{0:p2}"
-          className="text-right"
+          title="Taxes" 
+          width="200px"
+          cells={{ data: TaxesCell }}
+          filterable={false}
+          sortable={false}
         />
         <GridColumn
           title="Actions"
