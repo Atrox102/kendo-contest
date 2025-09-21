@@ -7,10 +7,18 @@ export const products = sqliteTable('products', {
   name: text('name').notNull(),
   description: text('description'),
   defaultPrice: real('default_price').notNull().default(0),
-  taxRate: real('tax_rate').notNull().default(0), // Tax rate as percentage (e.g., 20 for 20%)
-  taxName: text('tax_name').default('VAT'), // Name of the tax (VAT, Sales Tax, etc.)
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Product taxes table - supports multiple taxes per product
+export const productTaxes = sqliteTable('product_taxes', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  taxName: text('tax_name').notNull(), // VAT, Sales Tax, Service Tax, etc.
+  taxRate: real('tax_rate').notNull(), // Tax rate as percentage (e.g., 20 for 20%)
+  isDefault: integer('is_default', { mode: 'boolean' }).default(false), // Whether this is the default tax for the product
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Invoices table - B2B invoices
@@ -21,15 +29,11 @@ export const invoices = sqliteTable('invoices', {
   // Issuer details (user's business)
   issuerName: text('issuer_name').notNull(),
   issuerAddress: text('issuer_address'),
-  issuerEmail: text('issuer_email'),
-  issuerPhone: text('issuer_phone'),
   issuerTaxId: text('issuer_tax_id'),
   
   // Client details
   clientName: text('client_name').notNull(),
   clientAddress: text('client_address'),
-  clientEmail: text('client_email'),
-  clientPhone: text('client_phone'),
   clientTaxId: text('client_tax_id'),
   
   // Invoice details
@@ -67,8 +71,6 @@ export const receipts = sqliteTable('receipts', {
   // Issuer details (user's business)
   issuerName: text('issuer_name').notNull(),
   issuerAddress: text('issuer_address'),
-  issuerEmail: text('issuer_email'),
-  issuerPhone: text('issuer_phone'),
   
   // Receipt details
   issueDate: text('issue_date').notNull(),
@@ -99,6 +101,9 @@ export const receiptItems = sqliteTable('receipt_items', {
 // Types for TypeScript
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
+
+export type ProductTax = typeof productTaxes.$inferSelect;
+export type NewProductTax = typeof productTaxes.$inferInsert;
 
 export type Invoice = typeof invoices.$inferSelect;
 export type NewInvoice = typeof invoices.$inferInsert;

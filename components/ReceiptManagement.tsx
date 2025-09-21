@@ -7,6 +7,7 @@ import { Input } from "@progress/kendo-react-inputs";
 import { DatePicker } from "@progress/kendo-react-dateinputs";
 import { DropDownList } from "@progress/kendo-react-dropdowns";
 import { NumericTextBox } from "@progress/kendo-react-inputs";
+import { Plus, Trash2, Edit, FileText, Download, X } from "lucide-react";
 import { trpc } from "../lib/trpc";
 
 interface Receipt {
@@ -16,8 +17,6 @@ interface Receipt {
   paymentMethod: string;
   issuerName: string;
   issuerAddress?: string;
-  issuerEmail?: string;
-  issuerPhone?: string;
   subtotal: number;
   totalTax: number;
   total: number;
@@ -27,6 +26,7 @@ interface Receipt {
 
 interface ReceiptItem {
   id?: number;
+  productId?: number;
   productName: string;
   description?: string;
   quantity: number;
@@ -46,6 +46,7 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
 
   const addItem = () => {
     setItems([...items, {
+      productId: undefined,
       productName: '',
       description: '',
       quantity: 1,
@@ -92,8 +93,6 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
       paymentMethod: dataItem.paymentMethod,
       issuerName: dataItem.issuerName,
       issuerAddress: dataItem.issuerAddress,
-      issuerEmail: dataItem.issuerEmail,
-      issuerPhone: dataItem.issuerPhone,
       subtotal,
       totalTax,
       total,
@@ -113,8 +112,6 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
         paymentMethod: receipt?.paymentMethod || 'cash',
         issuerName: receipt?.issuerName || '',
         issuerAddress: receipt?.issuerAddress || '',
-        issuerEmail: receipt?.issuerEmail || '',
-        issuerPhone: receipt?.issuerPhone || '',
         notes: receipt?.notes || '',
       }}
       render={(formRenderProps) => (
@@ -161,19 +158,6 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
                 component={Input}
                 label="Address"
               />
-              
-              <Field
-                name="issuerEmail"
-                component={Input}
-                label="Email"
-                type="email"
-              />
-              
-              <Field
-                name="issuerPhone"
-                component={Input}
-                label="Phone"
-              />
             </fieldset>
           </div>
 
@@ -205,8 +189,11 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
                         const product = products.find(p => p.name === e.value);
                         updateItem(index, 'productName', e.value);
                         if (product) {
+                          updateItem(index, 'productId', product.id);
                           updateItem(index, 'unitPrice', product.defaultPrice);
-                          updateItem(index, 'taxRate', product.taxRate);
+                          // Apply default tax rate from product's taxes (first tax or 0 if no taxes)
+                          const defaultTax = product.taxes?.find(t => t.isDefault) || product.taxes?.[0];
+                          updateItem(index, 'taxRate', defaultTax ? defaultTax.taxRate / 100 : 0);
                         }
                       }}
                     />
@@ -384,8 +371,6 @@ export default function ReceiptManagement() {
         receiptNumber: data.receiptNumber,
         issuerName: data.issuerName,
         issuerAddress: data.issuerAddress,
-        issuerEmail: data.issuerEmail,
-        issuerPhone: data.issuerPhone,
         issueDate: convertDateToString(data.issueDate),
         paymentMethod: data.paymentMethod as "cash" | "card" | "transfer",
         notes: data.notes,
@@ -398,8 +383,6 @@ export default function ReceiptManagement() {
         receiptNumber: createData.receiptNumber,
         issuerName: createData.issuerName,
         issuerAddress: createData.issuerAddress,
-        issuerEmail: createData.issuerEmail,
-        issuerPhone: createData.issuerPhone,
         issueDate: convertDateToString(createData.issueDate),
         paymentMethod: createData.paymentMethod as "cash" | "card" | "transfer",
         notes: createData.notes,
@@ -423,37 +406,37 @@ export default function ReceiptManagement() {
         <Button
           size="small"
           fillMode="flat"
-          icon="edit"
           onClick={() => handleEdit(dataItem)}
           className="mr-1"
         >
+          <Edit className="w-4 h-4 mr-1" />
           Edit
         </Button>
         <Button
           size="small"
           fillMode="flat"
-          icon="pdf"
           onClick={() => handleExportPDF(dataItem.id)}
           className="mr-1"
         >
+          <FileText className="w-4 h-4 mr-1" />
           PDF
         </Button>
         <Button
           size="small"
           fillMode="flat"
-          icon="excel"
           onClick={() => handleExportExcel(dataItem.id)}
           className="mr-1"
         >
+          <Download className="w-4 h-4 mr-1" />
           Excel
         </Button>
         <Button
           size="small"
           fillMode="flat"
-          icon="delete"
           themeColor="error"
           onClick={() => handleDelete(dataItem.id)}
         >
+          <Trash2 className="w-4 h-4 mr-1" />
           Delete
         </Button>
       </td>
@@ -485,9 +468,9 @@ export default function ReceiptManagement() {
         <h2 className="text-2xl font-bold text-gray-900">Receipt Management (B2C)</h2>
         <Button
           themeColor="primary"
-          icon="plus"
           onClick={handleCreate}
         >
+          <Plus className="w-4 h-4 mr-2" />
           Create Receipt
         </Button>
       </div>

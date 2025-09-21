@@ -1,15 +1,18 @@
 
 import { useState } from "react";
 import Navigation from "../../components/Navigation";
+import Analytics from "../../components/Analytics";
 import ProductManagement from "../../components/ProductManagement";
 import InvoiceManagement from "../../components/InvoiceManagement";
 import ReceiptManagement from "../../components/ReceiptManagement";
 
 export default function Page() {
-  const [currentPage, setCurrentPage] = useState('products');
+  const [currentPage, setCurrentPage] = useState('analytics');
 
   const renderCurrentPage = () => {
     switch (currentPage) {
+      case 'analytics':
+        return <Analytics />;
       case 'products':
         return <ProductManagement />;
       case 'invoices':
@@ -17,7 +20,7 @@ export default function Page() {
       case 'receipts':
         return <ReceiptManagement />;
       default:
-        return <ProductManagement />;
+        return <Analytics />;
     }
   };
 

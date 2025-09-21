@@ -5,6 +5,7 @@ import { Dialog, DialogActionsBar } from "@progress/kendo-react-dialogs";
 import { Form, Field, FormElement } from "@progress/kendo-react-form";
 import { Input } from "@progress/kendo-react-inputs";
 import { NumericTextBox } from "@progress/kendo-react-inputs";
+import { Edit, Trash2, Plus } from "lucide-react";
 import { trpc } from "../lib/trpc";
 
 interface Product {
@@ -157,8 +158,11 @@ export default function ProductManagement() {
         name: data.name,
         description: data.description,
         defaultPrice: data.defaultPrice,
-        taxRate: data.taxRate,
-        taxName: data.taxName || "VAT"
+        taxes: [{
+          taxName: data.taxName || "VAT",
+          taxRate: data.taxRate,
+          isDefault: true
+        }]
       });
     } else {
       // For create: exclude id and ensure required fields are present
@@ -166,8 +170,11 @@ export default function ProductManagement() {
         name: data.name,
         description: data.description,
         defaultPrice: data.defaultPrice,
-        taxRate: data.taxRate,
-        taxName: data.taxName || "VAT"
+        taxes: [{
+          taxName: data.taxName || "VAT",
+          taxRate: data.taxRate,
+          isDefault: true
+        }]
       });
     }
   };
@@ -179,19 +186,19 @@ export default function ProductManagement() {
         <Button
           size="small"
           fillMode="flat"
-          icon="edit"
           onClick={() => handleEdit(dataItem)}
           className="mr-2"
         >
+          <Edit className="w-4 h-4 mr-1" />
           Edit
         </Button>
         <Button
           size="small"
           fillMode="flat"
-          icon="delete"
           themeColor="error"
           onClick={() => handleDelete(dataItem.id)}
         >
+          <Trash2 className="w-4 h-4 mr-1" />
           Delete
         </Button>
       </td>
@@ -204,9 +211,9 @@ export default function ProductManagement() {
         <h2 className="text-2xl font-bold text-gray-900">Product Management</h2>
         <Button
           themeColor="primary"
-          icon="plus"
           onClick={handleCreate}
         >
+          <Plus className="w-4 h-4 mr-2" />
           Add Product
         </Button>
       </div>

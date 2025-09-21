@@ -1,5 +1,6 @@
 import { Button } from "@progress/kendo-react-buttons";
 import { useState } from "react";
+import { Package, FileText, Receipt, BarChart3 } from "lucide-react";
 
 interface NavigationProps {
   currentPage: string;
@@ -8,9 +9,10 @@ interface NavigationProps {
 
 export default function Navigation({ currentPage, onPageChange }: NavigationProps) {
   const pages = [
-    { id: 'products', label: 'Products', icon: '📦' },
-    { id: 'invoices', label: 'Invoices (B2B)', icon: '📄' },
-    { id: 'receipts', label: 'Receipts (B2C)', icon: '🧾' },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'products', label: 'Products', icon: Package },
+    { id: 'invoices', label: 'Invoices (B2B)', icon: FileText },
+    { id: 'receipts', label: 'Receipts (B2C)', icon: Receipt },
   ];
 
   return (
@@ -23,22 +25,25 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
             </h1>
           </div>
           <div className="flex space-x-4">
-            {pages.map((page) => (
-              <Button
-                key={page.id}
-                onClick={() => onPageChange(page.id)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  currentPage === page.id
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-                fillMode={currentPage === page.id ? 'solid' : 'flat'}
-                themeColor={currentPage === page.id ? 'primary' : 'base'}
-              >
-                <span className="mr-2">{page.icon}</span>
-                {page.label}
-              </Button>
-            ))}
+            {pages.map((page) => {
+              const IconComponent = page.icon;
+              return (
+                <Button
+                  key={page.id}
+                  onClick={() => onPageChange(page.id)}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentPage === page.id
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                  fillMode={currentPage === page.id ? 'solid' : 'flat'}
+                  themeColor={currentPage === page.id ? 'primary' : 'base'}
+                >
+                  <IconComponent className="w-4 h-4 mr-2" />
+                  {page.label}
+                </Button>
+              );
+            })}
           </div>
         </div>
       </div>

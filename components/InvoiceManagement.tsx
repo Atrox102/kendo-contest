@@ -7,6 +7,7 @@ import { Input } from "@progress/kendo-react-inputs";
 import { DatePicker } from "@progress/kendo-react-dateinputs";
 import { DropDownList } from "@progress/kendo-react-dropdowns";
 import { NumericTextBox } from "@progress/kendo-react-inputs";
+import { Plus, Trash2, Edit, FileText, Download, X } from "lucide-react";
 import { trpc } from "../lib/trpc";
 
 interface Invoice {
@@ -17,12 +18,10 @@ interface Invoice {
   status: string;
   issuerName: string;
   issuerAddress?: string;
-  issuerEmail?: string;
-  issuerPhone?: string;
+  issuerTaxId?: string;
   clientName: string;
   clientAddress?: string;
-  clientEmail?: string;
-  clientPhone?: string;
+  clientTaxId?: string;
   subtotal: number;
   totalTax: number;
   total: number;
@@ -32,6 +31,7 @@ interface Invoice {
 
 interface InvoiceItem {
   id?: number;
+  productId?: number;
   productName: string;
   description?: string;
   quantity: number;
@@ -51,6 +51,7 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
 
   const addItem = () => {
     setItems([...items, {
+      productId: undefined,
       productName: '',
       description: '',
       quantity: 1,
@@ -98,12 +99,10 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
       status: dataItem.status || 'draft',
       issuerName: dataItem.issuerName,
       issuerAddress: dataItem.issuerAddress,
-      issuerEmail: dataItem.issuerEmail,
-      issuerPhone: dataItem.issuerPhone,
+      issuerTaxId: dataItem.issuerTaxId,
       clientName: dataItem.clientName,
       clientAddress: dataItem.clientAddress,
-      clientEmail: dataItem.clientEmail,
-      clientPhone: dataItem.clientPhone,
+      clientTaxId: dataItem.clientTaxId,
       subtotal,
       totalTax,
       total,
@@ -124,12 +123,10 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
         status: invoice?.status || 'draft',
         issuerName: invoice?.issuerName || '',
         issuerAddress: invoice?.issuerAddress || '',
-        issuerEmail: invoice?.issuerEmail || '',
-        issuerPhone: invoice?.issuerPhone || '',
+        issuerTaxId: invoice?.issuerTaxId || '',
         clientName: invoice?.clientName || '',
         clientAddress: invoice?.clientAddress || '',
-        clientEmail: invoice?.clientEmail || '',
-        clientPhone: invoice?.clientPhone || '',
+        clientTaxId: invoice?.clientTaxId || '',
         notes: invoice?.notes || '',
       }}
       render={(formRenderProps) => (
@@ -183,16 +180,9 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
               />
               
               <Field
-                name="issuerEmail"
+                name="issuerTaxId"
                 component={Input}
-                label="Email"
-                type="email"
-              />
-              
-              <Field
-                name="issuerPhone"
-                component={Input}
-                label="Phone"
+                label="Tax ID"
               />
             </fieldset>
           </div>
@@ -209,22 +199,15 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
               />
               
               <Field
-                name="clientEmail"
-                component={Input}
-                label="Client Email"
-                type="email"
-              />
-              
-              <Field
                 name="clientAddress"
                 component={Input}
                 label="Client Address"
               />
               
               <Field
-                name="clientPhone"
+                name="clientTaxId"
                 component={Input}
-                label="Client Phone"
+                label="Client Tax ID"
               />
             </div>
           </fieldset>
@@ -235,10 +218,10 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
             <div className="mb-4">
               <Button
                 type="button"
-                icon="plus"
                 onClick={addItem}
                 fillMode="outline"
               >
+                <Plus className="w-4 h-4 mr-2" />
                 Add Item
               </Button>
             </div>
@@ -257,8 +240,11 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
                         const product = products.find(p => p.name === e.value);
                         updateItem(index, 'productName', e.value);
                         if (product) {
+                          updateItem(index, 'productId', product.id);
                           updateItem(index, 'unitPrice', product.defaultPrice);
-                          updateItem(index, 'taxRate', product.taxRate);
+                          // Apply default tax rate from product's taxes (first tax or 0 if no taxes)
+                          const defaultTax = product.taxes?.find(t => t.isDefault) || product.taxes?.[0];
+                          updateItem(index, 'taxRate', defaultTax ? defaultTax.taxRate / 100 : 0);
                         }
                       }}
                     />
@@ -305,11 +291,12 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
                   <div>
                     <Button
                       type="button"
-                      icon="delete"
                       fillMode="flat"
                       themeColor="error"
                       onClick={() => removeItem(index)}
-                    />
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -436,13 +423,9 @@ export default function InvoiceManagement() {
         invoiceNumber: data.invoiceNumber,
         issuerName: data.issuerName,
         issuerAddress: data.issuerAddress,
-        issuerEmail: data.issuerEmail,
-        issuerPhone: data.issuerPhone,
         clientName: data.clientName,
         clientAddress: data.clientAddress,
-        clientEmail: data.clientEmail,
-        clientPhone: data.clientPhone,
-        issueDate: convertDateToString(data.issueDate),
+          issueDate: convertDateToString(data.issueDate),
         dueDate: data.dueDate ? convertDateToString(data.dueDate) : data.dueDate,
         notes: data.notes,
         status: data.status as "draft" | "sent" | "paid" | "overdue" | undefined,
@@ -455,12 +438,8 @@ export default function InvoiceManagement() {
         invoiceNumber: createData.invoiceNumber,
         issuerName: createData.issuerName,
         issuerAddress: createData.issuerAddress,
-        issuerEmail: createData.issuerEmail,
-        issuerPhone: createData.issuerPhone,
         clientName: createData.clientName,
         clientAddress: createData.clientAddress,
-        clientEmail: createData.clientEmail,
-        clientPhone: createData.clientPhone,
         issueDate: convertDateToString(createData.issueDate),
         dueDate: createData.dueDate ? convertDateToString(createData.dueDate) : createData.dueDate,
         notes: createData.notes,
@@ -484,37 +463,37 @@ export default function InvoiceManagement() {
         <Button
           size="small"
           fillMode="flat"
-          icon="edit"
           onClick={() => handleEdit(dataItem)}
           className="mr-1"
         >
+          <Edit className="w-4 h-4 mr-1" />
           Edit
         </Button>
         <Button
           size="small"
           fillMode="flat"
-          icon="pdf"
           onClick={() => handleExportPDF(dataItem.id)}
           className="mr-1"
         >
+          <FileText className="w-4 h-4 mr-1" />
           PDF
         </Button>
         <Button
           size="small"
           fillMode="flat"
-          icon="excel"
           onClick={() => handleExportExcel(dataItem.id)}
           className="mr-1"
         >
+          <Download className="w-4 h-4 mr-1" />
           Excel
         </Button>
         <Button
           size="small"
           fillMode="flat"
-          icon="delete"
           themeColor="error"
           onClick={() => handleDelete(dataItem.id)}
         >
+          <Trash2 className="w-4 h-4 mr-1" />
           Delete
         </Button>
       </td>
@@ -545,9 +524,9 @@ export default function InvoiceManagement() {
         <h2 className="text-2xl font-bold text-gray-900">Invoice Management (B2B)</h2>
         <Button
           themeColor="primary"
-          icon="plus"
           onClick={handleCreate}
         >
+          <Plus className="w-4 h-4 mr-2" />
           Create Invoice
         </Button>
       </div>

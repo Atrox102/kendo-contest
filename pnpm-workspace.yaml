@@ -1,3 +1,6 @@
+packages:
+  - '.'
+
 onlyBuiltDependencies:
   - '@progress/kendo-licensing'
   - '@tailwindcss/oxide'
