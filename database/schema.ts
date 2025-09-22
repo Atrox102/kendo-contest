@@ -58,9 +58,16 @@ export const invoiceItems = sqliteTable('invoice_items', {
   description: text('description'),
   quantity: real('quantity').notNull().default(1),
   unitPrice: real('unit_price').notNull(),
-  taxRate: real('tax_rate').notNull().default(0),
-  taxAmount: real('tax_amount').notNull().default(0),
-  lineTotal: real('line_total').notNull().default(0), // quantity * unitPrice + taxAmount
+  lineTotal: real('line_total').notNull().default(0), // quantity * unitPrice + total tax amount
+});
+
+// Invoice item taxes - supports multiple taxes per line item
+export const invoiceItemTaxes = sqliteTable('invoice_item_taxes', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  invoiceItemId: integer('invoice_item_id').notNull().references(() => invoiceItems.id, { onDelete: 'cascade' }),
+  taxName: text('tax_name').notNull(),
+  taxRate: real('tax_rate').notNull(),
+  taxAmount: real('tax_amount').notNull(),
 });
 
 // Receipts table - B2C receipts (simpler than invoices)
@@ -93,9 +100,16 @@ export const receiptItems = sqliteTable('receipt_items', {
   description: text('description'),
   quantity: real('quantity').notNull().default(1),
   unitPrice: real('unit_price').notNull(),
-  taxRate: real('tax_rate').notNull().default(0),
-  taxAmount: real('tax_amount').notNull().default(0),
-  lineTotal: real('line_total').notNull().default(0),
+  lineTotal: real('line_total').notNull().default(0), // quantity * unitPrice + total tax amount
+});
+
+// Receipt item taxes - supports multiple taxes per line item
+export const receiptItemTaxes = sqliteTable('receipt_item_taxes', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  receiptItemId: integer('receipt_item_id').notNull().references(() => receiptItems.id, { onDelete: 'cascade' }),
+  taxName: text('tax_name').notNull(),
+  taxRate: real('tax_rate').notNull(),
+  taxAmount: real('tax_amount').notNull(),
 });
 
 // Types for TypeScript
@@ -111,8 +125,14 @@ export type NewInvoice = typeof invoices.$inferInsert;
 export type InvoiceItem = typeof invoiceItems.$inferSelect;
 export type NewInvoiceItem = typeof invoiceItems.$inferInsert;
 
+export type InvoiceItemTax = typeof invoiceItemTaxes.$inferSelect;
+export type NewInvoiceItemTax = typeof invoiceItemTaxes.$inferInsert;
+
 export type Receipt = typeof receipts.$inferSelect;
 export type NewReceipt = typeof receipts.$inferInsert;
 
 export type ReceiptItem = typeof receiptItems.$inferSelect;
 export type NewReceiptItem = typeof receiptItems.$inferInsert;
+
+export type ReceiptItemTax = typeof receiptItemTaxes.$inferSelect;
+export type NewReceiptItemTax = typeof receiptItemTaxes.$inferInsert;

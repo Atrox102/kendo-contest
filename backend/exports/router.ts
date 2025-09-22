@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { router, publicProcedure } from "../trpc/server";
-import { invoices, invoiceItems, receipts, receiptItems, type InvoiceItem } from "../../database/schema";
+import { invoices, invoiceItems, receipts, receiptItems, invoiceItemTaxes, receiptItemTaxes, type InvoiceItem } from "../../database/schema";
 import { eq } from "drizzle-orm";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
@@ -25,6 +25,23 @@ export const exportsRouter = router({
         .select()
         .from(invoiceItems)
         .where(eq(invoiceItems.invoiceId, input.id));
+      // Get taxes for each item
+      const itemsWithTaxes = await Promise.all(
+        items.map(async (item) => {
+          const taxes = await ctx.db
+            .select()
+            .from(invoiceItemTaxes)
+            .where(eq(invoiceItemTaxes.invoiceItemId, item.id));
+          
+          const totalTaxAmount = taxes.reduce((sum, tax) => sum + tax.taxAmount, 0);
+          
+          return {
+            ...item,
+            taxes,
+            taxAmount: totalTaxAmount,
+          };
+        })
+      );
 
       // Create PDF
       const doc = new jsPDF();
@@ -46,8 +63,6 @@ export const exportsRouter = router({
       doc.setFontSize(10);
       doc.text(invoice[0].issuerName, 20, 95);
       if (invoice[0].issuerAddress) doc.text(invoice[0].issuerAddress, 20, 105);
-      if (invoice[0].issuerEmail) doc.text(invoice[0].issuerEmail, 20, 115);
-      if (invoice[0].issuerPhone) doc.text(invoice[0].issuerPhone, 20, 125);
 
       // Client details
       doc.setFontSize(14);
@@ -55,8 +70,6 @@ export const exportsRouter = router({
       doc.setFontSize(10);
       doc.text(invoice[0].clientName, 120, 95);
       if (invoice[0].clientAddress) doc.text(invoice[0].clientAddress, 120, 105);
-      if (invoice[0].clientEmail) doc.text(invoice[0].clientEmail, 120, 115);
-      if (invoice[0].clientPhone) doc.text(invoice[0].clientPhone, 120, 125);
 
       // Items table
       let yPos = 150;
@@ -72,7 +85,7 @@ export const exportsRouter = router({
       yPos += 10;
 
       doc.setFontSize(10);
-      items.forEach((item: InvoiceItem) => {
+      itemsWithTaxes.forEach((item) => {
         doc.text(item.productName, 20, yPos);
         doc.text(item.quantity.toString(), 120, yPos);
         doc.text(`$${item.unitPrice.toFixed(2)}`, 140, yPos);
@@ -131,6 +144,24 @@ export const exportsRouter = router({
         .from(receiptItems)
         .where(eq(receiptItems.receiptId, input.id));
 
+      // Get taxes for each item
+      const itemsWithTaxes = await Promise.all(
+        items.map(async (item) => {
+          const taxes = await ctx.db
+            .select()
+            .from(receiptItemTaxes)
+            .where(eq(receiptItemTaxes.receiptItemId, item.id));
+          
+          const totalTaxAmount = taxes.reduce((sum, tax) => sum + tax.taxAmount, 0);
+          
+          return {
+            ...item,
+            taxes,
+            taxAmount: totalTaxAmount,
+          };
+        })
+      );
+
       // Create PDF
       const doc = new jsPDF();
       
@@ -149,8 +180,6 @@ export const exportsRouter = router({
       doc.setFontSize(10);
       doc.text(receipt[0].issuerName, 20, 95);
       if (receipt[0].issuerAddress) doc.text(receipt[0].issuerAddress, 20, 105);
-      if (receipt[0].issuerEmail) doc.text(receipt[0].issuerEmail, 20, 115);
-      if (receipt[0].issuerPhone) doc.text(receipt[0].issuerPhone, 20, 125);
 
       // Items table
       let yPos = 150;
@@ -166,7 +195,7 @@ export const exportsRouter = router({
       yPos += 10;
 
       doc.setFontSize(10);
-      items.forEach((item) => {
+      itemsWithTaxes.forEach((item) => {
         doc.text(item.productName, 20, yPos);
         doc.text(item.quantity.toString(), 120, yPos);
         doc.text(`$${item.unitPrice.toFixed(2)}`, 140, yPos);
@@ -225,6 +254,24 @@ export const exportsRouter = router({
         .from(invoiceItems)
         .where(eq(invoiceItems.invoiceId, input.id));
 
+      // Get taxes for each item
+      const itemsWithTaxes = await Promise.all(
+        items.map(async (item) => {
+          const taxes = await ctx.db
+            .select()
+            .from(invoiceItemTaxes)
+            .where(eq(invoiceItemTaxes.invoiceItemId, item.id));
+          
+          const totalTaxAmount = taxes.reduce((sum, tax) => sum + tax.taxAmount, 0);
+          
+          return {
+            ...item,
+            taxes,
+            taxAmount: totalTaxAmount,
+          };
+        })
+      );
+
       // Create workbook
       const wb = XLSX.utils.book_new();
 
@@ -237,13 +284,9 @@ export const exportsRouter = router({
         [""],
         ["Issuer Name", invoice[0].issuerName],
         ["Issuer Address", invoice[0].issuerAddress || ""],
-        ["Issuer Email", invoice[0].issuerEmail || ""],
-        ["Issuer Phone", invoice[0].issuerPhone || ""],
         [""],
         ["Client Name", invoice[0].clientName],
         ["Client Address", invoice[0].clientAddress || ""],
-        ["Client Email", invoice[0].clientEmail || ""],
-        ["Client Phone", invoice[0].clientPhone || ""],
         [""],
         ["Subtotal", invoice[0].subtotal],
         ["Total Tax", invoice[0].totalTax],
@@ -257,13 +300,12 @@ export const exportsRouter = router({
 
       // Items sheet
       const itemsData = [
-        ["Product Name", "Description", "Quantity", "Unit Price", "Tax Rate", "Tax Amount", "Line Total"],
-        ...items.map(item => [
+        ["Product Name", "Description", "Quantity", "Unit Price", "Tax Amount", "Line Total"],
+        ...itemsWithTaxes.map(item => [
           item.productName,
           item.description || "",
           item.quantity,
           item.unitPrice,
-          item.taxRate,
           item.taxAmount,
           item.lineTotal
         ])
@@ -303,6 +345,24 @@ export const exportsRouter = router({
         .from(receiptItems)
         .where(eq(receiptItems.receiptId, input.id));
 
+      // Get taxes for each item
+      const itemsWithTaxes = await Promise.all(
+        items.map(async (item) => {
+          const taxes = await ctx.db
+            .select()
+            .from(receiptItemTaxes)
+            .where(eq(receiptItemTaxes.receiptItemId, item.id));
+          
+          const totalTaxAmount = taxes.reduce((sum, tax) => sum + tax.taxAmount, 0);
+          
+          return {
+            ...item,
+            taxes,
+            taxAmount: totalTaxAmount,
+          };
+        })
+      );
+
       // Create workbook
       const wb = XLSX.utils.book_new();
 
@@ -314,8 +374,6 @@ export const exportsRouter = router({
         [""],
         ["Issuer Name", receipt[0].issuerName],
         ["Issuer Address", receipt[0].issuerAddress || ""],
-        ["Issuer Email", receipt[0].issuerEmail || ""],
-        ["Issuer Phone", receipt[0].issuerPhone || ""],
         [""],
         ["Subtotal", receipt[0].subtotal],
         ["Total Tax", receipt[0].totalTax],
@@ -329,13 +387,12 @@ export const exportsRouter = router({
 
       // Items sheet
       const itemsData = [
-        ["Product Name", "Description", "Quantity", "Unit Price", "Tax Rate", "Tax Amount", "Line Total"],
-        ...items.map(item => [
+        ["Product Name", "Description", "Quantity", "Unit Price", "Tax Amount", "Line Total"],
+        ...itemsWithTaxes.map(item => [
           item.productName,
           item.description || "",
           item.quantity,
           item.unitPrice,
-          item.taxRate,
           item.taxAmount,
           item.lineTotal
         ])

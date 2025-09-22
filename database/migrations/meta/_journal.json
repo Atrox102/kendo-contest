@@ -15,6 +15,13 @@
       "when": 1758491819995,
       "tag": "0001_narrow_magdalene",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1758497618122,
+      "tag": "0002_flat_typhoid_mary",
+      "breakpoints": true
     }
   ]
 }

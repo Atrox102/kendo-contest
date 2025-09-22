@@ -9,6 +9,7 @@ import { DropDownList } from "@progress/kendo-react-dropdowns";
 import { NumericTextBox } from "@progress/kendo-react-inputs";
 import { Plus, Trash2, Edit, FileText, Download, X } from "lucide-react";
 import { trpc } from "../lib/trpc";
+import TaxManager from "./TaxManager";
 
 interface Receipt {
   id?: number;
@@ -31,8 +32,11 @@ interface ReceiptItem {
   description?: string;
   quantity: number;
   unitPrice: number;
-  taxRate: number;
-  taxAmount: number;
+  taxes: {
+    taxName: string;
+    taxRate: number;
+    taxAmount: number;
+  }[];
   lineTotal: number;
 }
 
@@ -51,8 +55,7 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
       description: '',
       quantity: 1,
       unitPrice: 0,
-      taxRate: 0,
-      taxAmount: 0,
+      taxes: [],
       lineTotal: 0,
     }]);
   };
@@ -61,12 +64,32 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     
+    // Auto-populate product details when product is selected
+    if (field === 'productId' && value) {
+      const product = products.find(p => p.id === value);
+      if (product) {
+        newItems[index].productName = product.name;
+        newItems[index].description = product.description || '';
+        newItems[index].unitPrice = product.defaultPrice;
+        // Set taxes from product
+        newItems[index].taxes = product.taxes?.map(tax => ({
+          taxName: tax.taxName,
+          taxRate: tax.taxRate,
+          taxAmount: 0
+        })) || [];
+      }
+    }
+    
     // Recalculate totals for this item
-    if (field === 'quantity' || field === 'unitPrice' || field === 'taxRate') {
+    if (field === 'quantity' || field === 'unitPrice') {
       const item = newItems[index];
       const subtotal = item.quantity * item.unitPrice;
-      item.taxAmount = subtotal * item.taxRate;
-      item.lineTotal = subtotal + item.taxAmount;
+      // Calculate tax amounts for each tax
+      item.taxes.forEach(tax => {
+        tax.taxAmount = subtotal * tax.taxRate;
+      });
+      const totalTaxAmount = item.taxes.reduce((sum, tax) => sum + tax.taxAmount, 0);
+      item.lineTotal = subtotal + totalTaxAmount;
     }
     
     setItems(newItems);
@@ -78,7 +101,8 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
 
   const calculateTotals = () => {
     const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-    const totalTax = items.reduce((sum, item) => sum + item.taxAmount, 0);
+    const totalTax = items.reduce((sum, item) => 
+      sum + item.taxes.reduce((taxSum, tax) => taxSum + tax.taxAmount, 0), 0);
     const total = subtotal + totalTax;
     return { subtotal, totalTax, total };
   };
@@ -177,7 +201,8 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
 
             {items.map((item, index) => (
               <div key={index} className="border p-4 mb-4 rounded">
-                <div className="grid grid-cols-6 gap-2 items-end">
+                {/* Basic item info */}
+                <div className="grid grid-cols-4 gap-4 mb-4">
                   <div>
                     <label className="k-label">Product</label>
                     <DropDownList
@@ -191,9 +216,6 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
                         if (product) {
                           updateItem(index, 'productId', product.id);
                           updateItem(index, 'unitPrice', product.defaultPrice);
-                          // Apply default tax rate from product's taxes (first tax or 0 if no taxes)
-                          const defaultTax = product.taxes?.find(t => t.isDefault) || product.taxes?.[0];
-                          updateItem(index, 'taxRate', defaultTax ? defaultTax.taxRate / 100 : 0);
                         }
                       }}
                     />
@@ -218,33 +240,41 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
                     />
                   </div>
                   
-                  <div>
-                    <label className="k-label">Tax Rate</label>
-                    <NumericTextBox
-                      value={item.taxRate}
-                      onChange={(e) => updateItem(index, 'taxRate', e.value)}
-                      format="p2"
-                      min={0}
-                      max={1}
-                      step={0.01}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="k-label">Line Total</label>
-                    <div className="k-textbox k-readonly">
-                      ${item.lineTotal.toFixed(2)}
-                    </div>
-                  </div>
-                  
-                  <div>
+                  <div className="flex items-end">
                     <Button
                       type="button"
-                      icon="delete"
                       fillMode="flat"
                       themeColor="error"
                       onClick={() => removeItem(index)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Tax management and totals */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-2">
+                    <TaxManager
+                      taxes={item.taxes}
+                      subtotal={item.quantity * item.unitPrice}
+                      onChange={(taxes) => {
+                        const updatedItems = [...items];
+                        updatedItems[index] = {
+                          ...item,
+                          taxes,
+                          lineTotal: (item.quantity * item.unitPrice) + taxes.reduce((sum, tax) => sum + tax.taxAmount, 0)
+                        };
+                        setItems(updatedItems);
+                      }}
                     />
+                  </div>
+                  
+                  <div className="flex flex-col justify-end">
+                    <label className="k-label">Line Total</label>
+                    <div className="k-textbox k-readonly text-lg font-semibold">
+                      ${item.lineTotal.toFixed(2)}
+                    </div>
                   </div>
                 </div>
               </div>

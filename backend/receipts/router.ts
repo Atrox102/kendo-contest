@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { router, publicProcedure } from "../trpc/server";
-import { receipts, receiptItems } from "../../database/schema";
+import { receipts, receiptItems, receiptItemTaxes } from "../../database/schema";
 import { eq } from "drizzle-orm";
+
+const taxSchema = z.object({
+  taxName: z.string().min(1, "Tax name is required"),
+  taxRate: z.number().min(0).max(100, "Tax rate must be between 0 and 100"),
+  taxAmount: z.number().min(0, "Tax amount must be positive"),
+});
 
 const receiptItemSchema = z.object({
   productId: z.number().optional(),
@@ -9,7 +15,8 @@ const receiptItemSchema = z.object({
   description: z.string().optional(),
   quantity: z.number().min(0.01, "Quantity must be positive"),
   unitPrice: z.number().min(0, "Unit price must be positive"),
-  taxRate: z.number().min(0).max(100, "Tax rate must be between 0 and 100"),
+  taxes: z.array(taxSchema).default([]),
+  lineTotal: z.number().min(0, "Line total must be positive"),
 });
 
 export const receiptsRouter = router({
@@ -35,9 +42,24 @@ export const receiptsRouter = router({
         .from(receiptItems)
         .where(eq(receiptItems.receiptId, input.id));
 
+      // Get taxes for each item
+      const itemsWithTaxes = await Promise.all(
+        items.map(async (item) => {
+          const taxes = await ctx.db
+            .select()
+            .from(receiptItemTaxes)
+            .where(eq(receiptItemTaxes.receiptItemId, item.id));
+          
+          return {
+            ...item,
+            taxes,
+          };
+        })
+      );
+
       return {
         ...receipt[0],
-        items,
+        items: itemsWithTaxes,
       };
     }),
 
@@ -63,15 +85,14 @@ export const receiptsRouter = router({
 
       const processedItems = items.map((item) => {
         const lineSubtotal = item.quantity * item.unitPrice;
-        const taxAmount = (lineSubtotal * item.taxRate) / 100;
-        const lineTotal = lineSubtotal + taxAmount;
+        const totalTaxAmount = item.taxes.reduce((sum, tax) => sum + tax.taxAmount, 0);
+        const lineTotal = lineSubtotal + totalTaxAmount;
 
         subtotal += lineSubtotal;
-        totalTax += taxAmount;
+        totalTax += totalTaxAmount;
 
         return {
           ...item,
-          taxAmount,
           lineTotal,
         };
       });
@@ -93,12 +114,32 @@ export const receiptsRouter = router({
       const receipt = receiptResult[0];
 
       // Create receipt items
-      const itemsToInsert = processedItems.map((item) => ({
-        receiptId: receipt.id,
-        ...item,
-      }));
+      const itemsToInsert = processedItems.map((item) => {
+        const { taxes, ...itemData } = item;
+        return {
+          receiptId: receipt.id,
+          ...itemData,
+        };
+      });
 
-      await ctx.db.insert(receiptItems).values(itemsToInsert);
+      const insertedItems = await ctx.db.insert(receiptItems).values(itemsToInsert).returning();
+
+      // Create receipt item taxes
+      for (let i = 0; i < processedItems.length; i++) {
+        const item = processedItems[i];
+        const insertedItem = insertedItems[i];
+        
+        if (item.taxes.length > 0) {
+          const taxesToInsert = item.taxes.map((tax) => ({
+            receiptItemId: insertedItem.id,
+            taxName: tax.taxName,
+            taxRate: tax.taxRate,
+            taxAmount: tax.taxAmount,
+          }));
+          
+          await ctx.db.insert(receiptItemTaxes).values(taxesToInsert);
+        }
+      }
 
       return receipt;
     }),
@@ -126,15 +167,14 @@ export const receiptsRouter = router({
 
       const processedItems = items.map((item) => {
         const lineSubtotal = item.quantity * item.unitPrice;
-        const taxAmount = (lineSubtotal * item.taxRate) / 100;
-        const lineTotal = lineSubtotal + taxAmount;
+        const totalTaxAmount = item.taxes.reduce((sum, tax) => sum + tax.taxAmount, 0);
+        const lineTotal = lineSubtotal + totalTaxAmount;
 
         subtotal += lineSubtotal;
-        totalTax += taxAmount;
+        totalTax += totalTaxAmount;
 
         return {
           ...item,
-          taxAmount,
           lineTotal,
         };
       });
@@ -154,15 +194,35 @@ export const receiptsRouter = router({
         .where(eq(receipts.id, id))
         .returning();
 
-      // Delete existing items and create new ones
+      // Delete existing items and their taxes (cascade will handle taxes)
       await ctx.db.delete(receiptItems).where(eq(receiptItems.receiptId, id));
 
-      const itemsToInsert = processedItems.map((item) => ({
-        receiptId: id,
-        ...item,
-      }));
+      const itemsToInsert = processedItems.map((item) => {
+        const { taxes, ...itemData } = item;
+        return {
+          receiptId: id,
+          ...itemData,
+        };
+      });
 
-      await ctx.db.insert(receiptItems).values(itemsToInsert);
+      const insertedItems = await ctx.db.insert(receiptItems).values(itemsToInsert).returning();
+
+      // Create receipt item taxes
+      for (let i = 0; i < processedItems.length; i++) {
+        const item = processedItems[i];
+        const insertedItem = insertedItems[i];
+        
+        if (item.taxes.length > 0) {
+          const taxesToInsert = item.taxes.map((tax) => ({
+            receiptItemId: insertedItem.id,
+            taxName: tax.taxName,
+            taxRate: tax.taxRate,
+            taxAmount: tax.taxAmount,
+          }));
+          
+          await ctx.db.insert(receiptItemTaxes).values(taxesToInsert);
+        }
+      }
 
       return receiptResult[0];
     }),
