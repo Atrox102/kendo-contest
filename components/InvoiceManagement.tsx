@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState, useEffect } from "react";
 import { Grid, GridColumn, GridToolbar } from "@progress/kendo-react-grid";
 import { Button } from "@progress/kendo-react-buttons";
 import { Dialog, DialogActionsBar } from "@progress/kendo-react-dialogs";
@@ -7,7 +7,11 @@ import { Input } from "@progress/kendo-react-inputs";
 import { DatePicker } from "@progress/kendo-react-dateinputs";
 import { DropDownList } from "@progress/kendo-react-dropdowns";
 import { NumericTextBox } from "@progress/kendo-react-inputs";
-import { Plus, Trash2, Edit, FileText, Download, X } from "lucide-react";
+import { Fade, Slide, Expand } from "@progress/kendo-react-animation";
+import { ProgressBar } from "@progress/kendo-react-progressbars";
+import { Loader } from "@progress/kendo-react-indicators";
+import { Card, CardBody, CardHeader, CardTitle } from "@progress/kendo-react-layout";
+import { Plus, Trash2, Edit, FileText, Download, X, TrendingUp, DollarSign, FileCheck, Clock } from "lucide-react";
 import { trpc } from "../lib/trpc";
 import TaxManager from "./TaxManager";
 
@@ -367,7 +371,7 @@ export default function InvoiceManagement() {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | undefined>();
 
   // tRPC queries and mutations
-  const { data: invoices = [], refetch } = trpc.invoices.list.useQuery();
+  const { data: invoices = [], refetch, isLoading } = trpc.invoices.list.useQuery();
   const createMutation = trpc.invoices.create.useMutation({
     onSuccess: () => {
       refetch();
@@ -405,6 +409,17 @@ export default function InvoiceManagement() {
       link.click();
     },
   });
+
+  // Calculate statistics
+  const stats = {
+    total: invoices.length,
+    draft: invoices.filter(inv => inv.status === 'draft').length,
+    sent: invoices.filter(inv => inv.status === 'sent').length,
+    paid: invoices.filter(inv => inv.status === 'paid').length,
+    overdue: invoices.filter(inv => inv.status === 'overdue').length,
+    totalValue: invoices.reduce((sum, inv) => sum + inv.total, 0),
+    paidValue: invoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.total, 0),
+  };
 
   const handleCreate = () => {
     setEditingInvoice(undefined);
@@ -489,135 +504,258 @@ export default function InvoiceManagement() {
     const { dataItem } = props;
     return (
       <td className="text-center">
-        <Button
-          size="small"
-          fillMode="flat"
-          onClick={() => handleEdit(dataItem)}
-          className="mr-1"
-        >
-          <Edit className="w-4 h-4 mr-1" />
-          Edit
-        </Button>
-        <Button
-          size="small"
-          fillMode="flat"
-          onClick={() => handleExportPDF(dataItem.id)}
-          className="mr-1"
-        >
-          <FileText className="w-4 h-4 mr-1" />
-          PDF
-        </Button>
-        <Button
-          size="small"
-          fillMode="flat"
-          onClick={() => handleExportExcel(dataItem.id)}
-          className="mr-1"
-        >
-          <Download className="w-4 h-4 mr-1" />
-          Excel
-        </Button>
-        <Button
-          size="small"
-          fillMode="flat"
-          themeColor="error"
-          onClick={() => handleDelete(dataItem.id)}
-        >
-          <Trash2 className="w-4 h-4 mr-1" />
-          Delete
-        </Button>
+        <div className="flex gap-1 justify-center">
+          <Button
+            size="small"
+            fillMode="flat"
+            onClick={() => handleEdit(dataItem)}
+            title="Edit Invoice"
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+          <Button
+            size="small"
+            fillMode="flat"
+            onClick={() => handleExportPDF(dataItem.id)}
+            title="Export to PDF"
+            disabled={exportPDFMutation.isPending}
+          >
+            <FileText className="w-4 h-4" />
+          </Button>
+          <Button
+            size="small"
+            fillMode="flat"
+            onClick={() => handleExportExcel(dataItem.id)}
+            title="Export to Excel"
+            disabled={exportExcelMutation.isPending}
+          >
+            <Download className="w-4 h-4" />
+          </Button>
+          <Button
+            size="small"
+            fillMode="flat"
+            themeColor="error"
+            onClick={() => handleDelete(dataItem.id)}
+            title="Delete Invoice"
+            disabled={deleteMutation.isPending}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
       </td>
     );
   };
 
   const StatusCell = (props: any) => {
     const { dataItem } = props;
-    const statusColors = {
-      draft: 'bg-gray-100 text-gray-800',
-      sent: 'bg-blue-100 text-blue-800',
-      paid: 'bg-green-100 text-green-800',
-      overdue: 'bg-red-100 text-red-800',
+    const statusConfig = {
+      draft: { color: 'bg-gray-100 text-gray-800', icon: Clock },
+      sent: { color: 'bg-blue-100 text-blue-800', icon: FileCheck },
+      paid: { color: 'bg-green-100 text-green-800', icon: DollarSign },
+      overdue: { color: 'bg-red-100 text-red-800', icon: TrendingUp },
     };
+    
+    const config = statusConfig[dataItem.status as keyof typeof statusConfig];
+    const IconComponent = config?.icon || Clock;
     
     return (
       <td>
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[dataItem.status as keyof typeof statusColors]}`}>
+        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config?.color}`}>
+          <IconComponent className="w-3 h-3 mr-1" />
           {dataItem.status}
         </span>
       </td>
     );
   };
 
-  return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Invoice Management (B2B)</h2>
-        <Button
-          themeColor="primary"
-          onClick={handleCreate}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Invoice
-        </Button>
-      </div>
-
-      <Grid
-        data={invoices}
-        style={{ height: '600px' }}
-        sortable
-        filterable
-        pageable={{
-          buttonCount: 5,
-          pageSizes: [10, 20, 50],
-        }}
-      >
-        <GridToolbar>
-          <div className="flex justify-between items-center w-full">
-            <span className="text-sm text-gray-600">
-              Total: {invoices.length} invoices
-            </span>
+  const StatCard = ({ title, value, icon: Icon, color, subtitle }: {
+    title: string;
+    value: string | number;
+    icon: any;
+    color: string;
+    subtitle?: string;
+  }) => (
+    <Card className="hover:shadow-lg transition-shadow duration-200 border-l-4" style={{ borderLeftColor: color }}>
+      <CardBody className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600">{title}</p>
+            <p className="text-2xl font-bold text-gray-900">{value}</p>
+            {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
           </div>
-        </GridToolbar>
-        
-        <GridColumn field="invoiceNumber" title="Invoice #" width="150px" />
-        <GridColumn field="clientName" title="Client" width="200px" />
-        <GridColumn field="issueDate" title="Issue Date" width="120px" format="{0:d}" />
-        <GridColumn field="dueDate" title="Due Date" width="120px" format="{0:d}" />
-        <GridColumn 
-          field="status" 
-          title="Status" 
-          width="100px"
-          cells={{ data: StatusCell }}
-        />
-        <GridColumn 
-          field="total" 
-          title="Total" 
-          width="120px"
-          format="{0:c2}"
-          className="text-right"
-        />
-        <GridColumn
-          title="Actions"
-          width="300px"
-          cells={{ data: ActionCell }}
-          filterable={false}
-          sortable={false}
-        />
-      </Grid>
+          <div 
+            className="p-3 rounded-full bg-gradient-to-br from-opacity-20 to-opacity-30"
+            style={{ backgroundColor: `${color}20` }}
+          >
+            <Icon className="w-6 h-6" style={{ color }} />
+          </div>
+        </div>
+      </CardBody>
+    </Card>
+  );
 
-      {showDialog && (
-        <Dialog
-          title={editingInvoice ? 'Edit Invoice' : 'Create New Invoice'}
-          onClose={() => setShowDialog(false)}
-          width={900}
-          height={700}
-        >
-          <InvoiceForm
-            invoice={editingInvoice}
-            onSubmit={handleSubmit}
-            onCancel={() => setShowDialog(false)}
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <Loader size="large" />
+          <span className="ml-3 text-lg">Loading invoices...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Fade>
+      <div className="py-6 px-12 space-y-6 w-screen">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">Invoice Management</h2>
+            <p className="text-gray-600 mt-1">Manage your B2B invoices and track payments</p>
+          </div>
+          <Button
+            themeColor="primary"
+            onClick={handleCreate}
+            size="large"
+            disabled={createMutation.isPending}
+          >
+            <span className="flex items-center">
+            <Plus className="w-5 h-5 mr-2" />
+              Create Invoice
+            </span>
+          </Button>
+        </div>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title="Total Invoices"
+            value={stats.total}
+            icon={FileText}
+            color="#3b82f6"
+            subtitle={`${stats.draft} draft, ${stats.sent} sent`}
           />
-        </Dialog>
-      )}
-    </div>
+          <StatCard
+            title="Paid Invoices"
+            value={stats.paid}
+            icon={DollarSign}
+            color="#10b981"
+            subtitle={`${((stats.paid / stats.total) * 100 || 0).toFixed(1)}% completion rate`}
+          />
+          <StatCard
+            title="Total Value"
+            value={`$${stats.totalValue.toLocaleString()}`}
+            icon={TrendingUp}
+            color="#8b5cf6"
+          />
+          <StatCard
+            title="Overdue"
+            value={stats.overdue}
+            icon={Clock}
+            color="#ef4444"
+            subtitle={stats.overdue > 0 ? "Requires attention" : "All up to date"}
+          />
+        </div>
+
+        {/* Progress Bar for Payment Status */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Progress</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span>Paid: ${stats.paidValue.toLocaleString()}</span>
+                <span>Total: ${stats.totalValue.toLocaleString()}</span>
+              </div>
+              <ProgressBar 
+                value={(stats.paidValue / stats.totalValue) * 100 || 0}
+                className="h-3"
+              />
+              <div className="text-xs text-gray-500 text-center">
+                {((stats.paidValue / stats.totalValue) * 100 || 0).toFixed(1)}% of total invoice value collected
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* Main Grid */}
+        <Card>
+          <CardBody className="p-0">
+            <Grid
+              data={invoices}
+              style={{ height: '600px' }}
+              sortable
+              filterable
+              pageable={{
+                buttonCount: 5,
+                pageSizes: [10, 20, 50],
+              }}
+            >
+              <GridToolbar>
+                <div className="flex justify-between items-center w-full p-4">
+                  <span className="text-sm text-gray-600">
+                    Showing {invoices.length} invoices
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      size="small"
+                      fillMode="outline"
+                      onClick={() => refetch()}
+                      disabled={isLoading}
+                    >
+                      <span className="flex items-center">
+                        Refresh
+                      </span>
+                    </Button>
+                  </div>
+                </div>
+              </GridToolbar>
+              
+              <GridColumn field="invoiceNumber" title="Invoice #" />
+              <GridColumn field="clientName" title="Client" />
+              <GridColumn field="issueDate" title="Issue Date" format="{0:d}" />
+              <GridColumn field="dueDate" title="Due Date" format="{0:d}" />
+              <GridColumn 
+                field="status" 
+                title="Status" 
+                cells={{ data: StatusCell }}
+              />
+              <GridColumn 
+                field="total" 
+                title="Total" 
+                format="{0:c2}"
+                className="text-right font-semibold"
+              />
+              <GridColumn
+                title="Actions"
+                cells={{ data: ActionCell }}
+                filterable={false}
+                sortable={false}
+              />
+            </Grid>
+          </CardBody>
+        </Card>
+
+        {/* Dialog with Animation */}
+        {showDialog && (
+          <Slide direction="up">
+            <Dialog
+              title={editingInvoice ? 'Edit Invoice' : 'Create New Invoice'}
+              onClose={() => setShowDialog(false)}
+              width={900}
+              height={700}
+            >
+              <InvoiceForm
+                invoice={editingInvoice}
+                onSubmit={handleSubmit}
+                onCancel={() => setShowDialog(false)}
+              />
+            </Dialog>
+          </Slide>
+        )}
+      </div>
+    </Fade>
   );
 }

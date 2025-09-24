@@ -31,7 +31,7 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
                 <Button
                   key={page.id}
                   onClick={() => onPageChange(page.id)}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-4  py-2 rounded-md text-sm font-medium transition-colors ${
                     currentPage === page.id
                       ? 'bg-blue-600 text-white'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -39,8 +39,10 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
                   fillMode={currentPage === page.id ? 'solid' : 'flat'}
                   themeColor={currentPage === page.id ? 'primary' : 'base'}
                 >
+                  <span className=" flex justify-center items-center">
                   <IconComponent className="w-4 h-4 mr-2" />
                   {page.label}
+                  </span>
                 </Button>
               );
             })}

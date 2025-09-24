@@ -1,4 +1,4 @@
-import "./style.css";
+﻿import "./style.css";
 import "./tailwind.css";
 import "@progress/kendo-theme-default/dist/all.css";
 

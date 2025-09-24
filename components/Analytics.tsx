@@ -1,9 +1,12 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { Card, CardBody, CardHeader, CardTitle } from "@progress/kendo-react-layout";
 import { Chart, ChartSeries, ChartSeriesItem, ChartCategoryAxis, ChartCategoryAxisItem, ChartValueAxis, ChartValueAxisItem, ChartLegend } from "@progress/kendo-react-charts";
 import { Grid, GridColumn } from "@progress/kendo-react-grid";
 import { DateRangePicker } from "@progress/kendo-react-dateinputs";
 import { DropDownList } from "@progress/kendo-react-dropdowns";
+import { Fade, Slide, Expand } from "@progress/kendo-react-animation";
+import { ProgressBar } from "@progress/kendo-react-progressbars";
+import { Loader } from "@progress/kendo-react-indicators";
 import { trpc } from "../lib/trpc";
 import { TrendingUp, TrendingDown, DollarSign, FileText, Receipt, Package } from "lucide-react";
 
@@ -26,10 +29,28 @@ export default function Analytics({ className = "" }: AnalyticsProps) {
     end: new Date()
   });
   const [period, setPeriod] = useState('month');
+  const [showCards, setShowCards] = useState(false);
+  const [showCharts, setShowCharts] = useState(false);
+  const [showTables, setShowTables] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { data: invoices = [] } = trpc.invoices.list.useQuery();
-  const { data: receipts = [] } = trpc.receipts.list.useQuery();
-  const { data: products = [] } = trpc.products.list.useQuery();
+  const { data: invoices = [], isLoading: invoicesLoading } = trpc.invoices.list.useQuery();
+  const { data: receipts = [], isLoading: receiptsLoading } = trpc.receipts.list.useQuery();
+  const { data: products = [], isLoading: productsLoading } = trpc.products.list.useQuery();
+
+  useEffect(() => {
+    const timer1 = setTimeout(() => setShowCards(true), 300);
+    const timer2 = setTimeout(() => setShowCharts(true), 600);
+    const timer3 = setTimeout(() => setShowTables(true), 900);
+    const loadingTimer = setTimeout(() => setIsLoading(false), 1200);
+    
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(loadingTimer);
+    };
+  }, []);
 
   const analytics = useMemo(() => {
     const filteredInvoices = invoices.filter(invoice => {
@@ -92,48 +113,72 @@ export default function Analytics({ className = "" }: AnalyticsProps) {
   }, [invoices, receipts, products, dateRange]);
 
   const StatCard = ({ title, value, icon: Icon, trend, trendValue, color = "primary" }: StatCardProps) => (
-    <Card className="h-full">
+    <Card className="h-full hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border-l-4 border-l-blue-500">
       <CardBody className="p-6">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600">{title}</p>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            {trend && (
-              <div className={`flex items-center mt-2 text-sm ${trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-                {trend === 'up' ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
-                {trendValue}
-              </div>
-            )}
+          <div className="flex-1">
+            <p className="text-sm font-medium text-gray-600 mb-2">{title}</p>
+            <p className="text-3xl font-bold text-gray-900 mb-2">{value}</p>
+              {trend && (
+                <Fade>
+                  <div className={`flex items-center text-sm font-medium ${trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+                    {trend === 'up' ? <TrendingUp className="w-4 h-4 mr-1 animate-pulse" /> : <TrendingDown className="w-4 h-4 mr-1 animate-pulse" />}
+                    {trendValue}
+                  </div>
+                </Fade>
+              )}
+            <div className="mt-3">
+              <ProgressBar 
+                value={75} 
+                className="h-2" 
+                style={{ height: '6px' }}
+              />
+            </div>
           </div>
-          <div className={`p-3 rounded-full bg-${color}-100`}>
-            <Icon className={`w-6 h-6 text-${color}-600`} />
+          <div className="ml-4">
+            <div className={`p-4 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 shadow-inner`}>
+              <Icon className={`w-8 h-8 text-blue-600`} />
+            </div>
           </div>
         </div>
       </CardBody>
     </Card>
   );
 
-  return (
-    <div className={`space-y-6 p-6 ${className}`}>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h1>
-          <p className="text-gray-600">Track your business performance and insights</p>
-        </div>
-        <div className="mt-4 sm:mt-0 flex space-x-4">
-          <DropDownList
-            data={['week', 'month', 'quarter', 'year']}
-            value={period}
-            onChange={(e) => setPeriod(e.value)}
-            className="w-32"
-          />
-          <DateRangePicker
-            value={{ start: dateRange.start || new Date(), end: dateRange.end || new Date() }}
-            onChange={(e) => setDateRange({ start: e.value.start || new Date(), end: e.value.end || new Date() })}
-          />
+  if (isLoading || invoicesLoading || receiptsLoading || productsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader size="large" />
+          <p className="mt-4 text-gray-600">Loading analytics data...</p>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className={`py-6 px-12  space-y-6 w-screen ${className}`}>
+      <Fade className="w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white p-6 rounded-xl shadow-sm border">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Analytics Dashboard</h1>
+            <p className="text-gray-600">Track your business performance and insights</p>
+          </div>
+          <div className="mt-4 sm:mt-0 flex gap-6 space-x-4">
+            <DropDownList
+              data={['week', 'month', 'quarter', 'year']}
+              value={period}
+              onChange={(e) => setPeriod(e.value)}
+              className="w-32"
+              fillMode="outline"
+            />
+            <DateRangePicker
+              value={{ start: dateRange.start || new Date(), end: dateRange.end || new Date() }}
+              onChange={(e) => setDateRange({ start: e.value.start || new Date(), end: e.value.end || new Date() })}
+            />
+          </div>
+        </div>
+      </Fade>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

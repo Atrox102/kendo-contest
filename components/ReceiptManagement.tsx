@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Grid, GridColumn, GridToolbar } from "@progress/kendo-react-grid";
 import { Button } from "@progress/kendo-react-buttons";
 import { Dialog, DialogActionsBar } from "@progress/kendo-react-dialogs";
@@ -7,7 +7,11 @@ import { Input } from "@progress/kendo-react-inputs";
 import { DatePicker } from "@progress/kendo-react-dateinputs";
 import { DropDownList } from "@progress/kendo-react-dropdowns";
 import { NumericTextBox } from "@progress/kendo-react-inputs";
-import { Plus, Trash2, Edit, FileText, Download, X } from "lucide-react";
+import { Fade, Slide, Expand } from "@progress/kendo-react-animation";
+import { ProgressBar } from "@progress/kendo-react-progressbars";
+import { Loader } from "@progress/kendo-react-indicators";
+import { Card, CardBody, CardHeader, CardTitle } from "@progress/kendo-react-layout";
+import { Plus, Trash2, Edit, FileText, Download, X, Receipt, CreditCard, TrendingUp, Calendar, DollarSign, ShoppingBag, Search, Filter } from "lucide-react";
 import { trpc } from "../lib/trpc";
 import TaxManager from "./TaxManager";
 
@@ -128,186 +132,194 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
   const { subtotal, totalTax, total } = calculateTotals();
 
   return (
-    <Form
-      onSubmit={handleSubmit}
-      initialValues={{
-        receiptNumber: receipt?.receiptNumber || '',
-        issueDate: receipt?.issueDate ? new Date(receipt.issueDate) : new Date(),
-        paymentMethod: receipt?.paymentMethod || 'cash',
-        issuerName: receipt?.issuerName || '',
-        issuerAddress: receipt?.issuerAddress || '',
-        notes: receipt?.notes || '',
-      }}
-      render={(formRenderProps) => (
-        <FormElement style={{ maxWidth: 700 }}>
-          <div className="grid grid-cols-2 gap-4">
-            <fieldset className="k-form-fieldset">
-              <legend className="k-form-legend">Receipt Details</legend>
-              
-              <Field
-                name="receiptNumber"
-                component={Input}
-                label="Receipt Number"
-                required
-              />
-              
-              <Field
-                name="issueDate"
-                component={DatePicker}
-                label="Issue Date"
-                required
-              />
-              
-              <Field
-                name="paymentMethod"
-                component={DropDownList}
-                label="Payment Method"
-                data={['cash', 'card', 'check', 'bank_transfer', 'digital_wallet']}
-                required
-              />
-            </fieldset>
+    <Fade>
+      <Form
+        onSubmit={handleSubmit}
+        initialValues={{
+          receiptNumber: receipt?.receiptNumber || '',
+          issueDate: receipt?.issueDate ? new Date(receipt.issueDate) : new Date(),
+          paymentMethod: receipt?.paymentMethod || 'cash',
+          issuerName: receipt?.issuerName || '',
+          issuerAddress: receipt?.issuerAddress || '',
+          notes: receipt?.notes || '',
+        }}
+        render={(formRenderProps) => (
+          <FormElement style={{ maxWidth: 700 }}>
+            <div className="grid grid-cols-2 gap-4">
+              <fieldset className="k-form-fieldset">
+                <legend className="k-form-legend">Receipt Details</legend>
+                
+                <Field
+                  name="receiptNumber"
+                  component={Input}
+                  label="Receipt Number"
+                  required
+                />
+                
+                <Field
+                  name="issueDate"
+                  component={DatePicker}
+                  label="Issue Date"
+                  required
+                />
+                
+                <Field
+                  name="paymentMethod"
+                  component={DropDownList}
+                  label="Payment Method"
+                  data={['cash', 'card', 'check', 'bank_transfer', 'digital_wallet']}
+                  required
+                />
+              </fieldset>
 
-            <fieldset className="k-form-fieldset">
-              <legend className="k-form-legend">Business Information</legend>
-              
-              <Field
-                name="issuerName"
-                component={Input}
-                label="Business Name"
-                required
-              />
-              
-              <Field
-                name="issuerAddress"
-                component={Input}
-                label="Address"
-              />
-            </fieldset>
-          </div>
-
-          <fieldset className="k-form-fieldset">
-            <legend className="k-form-legend">Items Purchased</legend>
-            
-            <div className="mb-4">
-              <Button
-                type="button"
-                icon="plus"
-                onClick={addItem}
-                fillMode="outline"
-              >
-                Add Item
-              </Button>
+              <fieldset className="k-form-fieldset">
+                <legend className="k-form-legend">Business Information</legend>
+                
+                <Field
+                  name="issuerName"
+                  component={Input}
+                  label="Business Name"
+                  required
+                />
+                
+                <Field
+                  name="issuerAddress"
+                  component={Input}
+                  label="Address"
+                />
+              </fieldset>
             </div>
 
-            {items.map((item, index) => (
-              <div key={index} className="border p-4 mb-4 rounded">
-                {/* Basic item info */}
-                <div className="grid grid-cols-4 gap-4 mb-4">
-                  <div>
-                    <label className="k-label">Product</label>
-                    <DropDownList
-                      data={products}
-                      textField="name"
-                      dataItemKey="name"
-                      value={item.productName}
-                      onChange={(e) => {
-                        const product = products.find(p => p.name === e.value);
-                        updateItem(index, 'productName', e.value);
-                        if (product) {
-                          updateItem(index, 'productId', product.id);
-                          updateItem(index, 'unitPrice', product.defaultPrice);
-                        }
-                      }}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="k-label">Quantity</label>
-                    <NumericTextBox
-                      value={item.quantity}
-                      onChange={(e) => updateItem(index, 'quantity', e.value)}
-                      min={1}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="k-label">Unit Price</label>
-                    <NumericTextBox
-                      value={item.unitPrice}
-                      onChange={(e) => updateItem(index, 'unitPrice', e.value)}
-                      format="c2"
-                      min={0}
-                    />
-                  </div>
-                  
-                  <div className="flex items-end">
-                    <Button
-                      type="button"
-                      fillMode="flat"
-                      themeColor="error"
-                      onClick={() => removeItem(index)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
+            <fieldset className="k-form-fieldset">
+              <legend className="k-form-legend">
+                Items Purchased
+                <Button
+                  type="button"
+                  onClick={addItem}
+                  className="ml-2"
+                  size="small"
+                  themeColor="primary"
+                  fillMode="outline"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Item
+                </Button>
+              </legend>
+              
+              {items.map((item, index) => (
+                <Expand key={index}>
+                  <div className="border border-gray-200 p-4 mb-4 rounded-lg bg-gray-50">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-semibold text-gray-700">Item {index + 1}</h4>
+                      <Button
+                        type="button"
+                        onClick={() => removeItem(index)}
+                        size="small"
+                        themeColor="error"
+                        fillMode="outline"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    
+                    {/* Basic item info */}
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <label className="k-label">Product</label>
+                        <DropDownList
+                          data={products}
+                          textField="name"
+                          dataItemKey="name"
+                          value={item.productName}
+                          onChange={(e) => {
+                            const product = products.find(p => p.name === e.value);
+                            updateItem(index, 'productName', e.value);
+                            if (product) {
+                              updateItem(index, 'productId', product.id);
+                              updateItem(index, 'unitPrice', product.defaultPrice);
+                            }
+                          }}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="k-label">Quantity</label>
+                        <NumericTextBox
+                          value={item.quantity}
+                          onChange={(e) => updateItem(index, 'quantity', e.value)}
+                          min={1}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="k-label">Unit Price</label>
+                        <NumericTextBox
+                          value={item.unitPrice}
+                          onChange={(e) => updateItem(index, 'unitPrice', e.value)}
+                          format="c2"
+                          min={0}
+                        />
+                      </div>
+                    </div>
 
-                {/* Tax management and totals */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-2">
-                    <TaxManager
-                      taxes={item.taxes}
-                      subtotal={item.quantity * item.unitPrice}
-                      onChange={(taxes) => {
-                        const updatedItems = [...items];
-                        updatedItems[index] = {
-                          ...item,
-                          taxes,
-                          lineTotal: (item.quantity * item.unitPrice) + taxes.reduce((sum, tax) => sum + tax.taxAmount, 0)
-                        };
-                        setItems(updatedItems);
-                      }}
-                    />
-                  </div>
-                  
-                  <div className="flex flex-col justify-end">
-                    <label className="k-label">Line Total</label>
-                    <div className="k-textbox k-readonly text-lg font-semibold">
-                      ${item.lineTotal.toFixed(2)}
+                    {/* Tax management and totals */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="col-span-2">
+                        <TaxManager
+                          taxes={item.taxes}
+                          subtotal={item.quantity * item.unitPrice}
+                          onChange={(taxes) => {
+                            const updatedItems = [...items];
+                            updatedItems[index] = {
+                              ...item,
+                              taxes,
+                              lineTotal: (item.quantity * item.unitPrice) + taxes.reduce((sum, tax) => sum + tax.taxAmount, 0)
+                            };
+                            setItems(updatedItems);
+                          }}
+                        />
+                      </div>
+                      
+                      <div className="flex flex-col justify-end">
+                        <label className="k-label">Line Total</label>
+                        <div className="k-textbox k-readonly text-lg font-semibold text-green-600">
+                          ${item.lineTotal.toFixed(2)}
+                        </div>
+                      </div>
                     </div>
                   </div>
+                </Expand>
+              ))}
+
+              <div className="border-t pt-4">
+                <div className="text-right space-y-2">
+                  <div>Subtotal: ${subtotal.toFixed(2)}</div>
+                  <div>Tax: ${totalTax.toFixed(2)}</div>
+                  <div className="text-lg font-bold">Total: ${total.toFixed(2)}</div>
                 </div>
               </div>
-            ))}
+            </fieldset>
 
-            <div className="border-t pt-4">
-              <div className="text-right space-y-2">
-                <div>Subtotal: ${subtotal.toFixed(2)}</div>
-                <div>Tax: ${totalTax.toFixed(2)}</div>
-                <div className="text-lg font-bold">Total: ${total.toFixed(2)}</div>
-              </div>
-            </div>
-          </fieldset>
-
-          <Field
-            name="notes"
-            component={Input}
-            label="Notes"
-          />
-          
-          <DialogActionsBar>
-            <Button
-              type="submit"
-              themeColor="primary"
-              disabled={!formRenderProps.allowSubmit}
-            >
-              {receipt ? 'Update' : 'Create'} Receipt
-            </Button>
-            <Button onClick={onCancel}>Cancel</Button>
-          </DialogActionsBar>
-        </FormElement>
-      )}
-    />
+            <Field
+              name="notes"
+              component={Input}
+              label="Notes"
+            />
+            
+            <DialogActionsBar>
+              <Button
+                type="submit"
+                themeColor="primary"
+                disabled={!formRenderProps.allowSubmit}
+              >
+                {receipt ? 'Update' : 'Create'} Receipt
+              </Button>
+              <Button onClick={onCancel}>Cancel</Button>
+            </DialogActionsBar>
+          </FormElement>
+        )}
+      />
+    </Fade>
   );
 };
 
@@ -316,7 +328,7 @@ export default function ReceiptManagement() {
   const [editingReceipt, setEditingReceipt] = useState<Receipt | undefined>();
 
   // tRPC queries and mutations
-  const { data: receipts = [], refetch } = trpc.receipts.list.useQuery();
+  const { data: receipts = [], refetch, isLoading } = trpc.receipts.list.useQuery();
   const createMutation = trpc.receipts.create.useMutation({
     onSuccess: () => {
       refetch();
@@ -354,6 +366,24 @@ export default function ReceiptManagement() {
       link.click();
     },
   });
+
+  // Calculate statistics
+  const stats = {
+    total: receipts.length,
+    totalRevenue: receipts.reduce((sum, r) => sum + r.total, 0),
+    averageAmount: receipts.length > 0 ? receipts.reduce((sum, r) => sum + r.total, 0) / receipts.length : 0,
+    totalTax: receipts.reduce((sum, r) => sum + r.totalTax, 0),
+    paymentMethods: {
+      cash: receipts.filter(r => r.paymentMethod === 'cash').length,
+      card: receipts.filter(r => r.paymentMethod === 'card').length,
+      other: receipts.filter(r => !['cash', 'card'].includes(r.paymentMethod as "cash" | "card" | "transfer")).length,
+    },
+    thisMonth: receipts.filter(r => {
+      const receiptDate = new Date(r.issueDate);
+      const now = new Date();
+      return receiptDate.getMonth() === now.getMonth() && receiptDate.getFullYear() === now.getFullYear();
+    }).length,
+  };
 
   const handleCreate = () => {
     setEditingReceipt(undefined);
@@ -433,135 +463,261 @@ export default function ReceiptManagement() {
     const { dataItem } = props;
     return (
       <td className="text-center">
-        <Button
-          size="small"
-          fillMode="flat"
-          onClick={() => handleEdit(dataItem)}
-          className="mr-1"
-        >
-          <Edit className="w-4 h-4 mr-1" />
-          Edit
-        </Button>
-        <Button
-          size="small"
-          fillMode="flat"
-          onClick={() => handleExportPDF(dataItem.id)}
-          className="mr-1"
-        >
-          <FileText className="w-4 h-4 mr-1" />
-          PDF
-        </Button>
-        <Button
-          size="small"
-          fillMode="flat"
-          onClick={() => handleExportExcel(dataItem.id)}
-          className="mr-1"
-        >
-          <Download className="w-4 h-4 mr-1" />
-          Excel
-        </Button>
-        <Button
-          size="small"
-          fillMode="flat"
-          themeColor="error"
-          onClick={() => handleDelete(dataItem.id)}
-        >
-          <Trash2 className="w-4 h-4 mr-1" />
-          Delete
-        </Button>
+        <div className="flex gap-1 justify-center">
+          <Button
+            size="small"
+            fillMode="flat"
+            onClick={() => handleEdit(dataItem)}
+            title="Edit Receipt"
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+          <Button
+            size="small"
+            fillMode="flat"
+            onClick={() => handleExportPDF(dataItem.id)}
+            title="Export PDF"
+            disabled={exportPDFMutation.isPending}
+          >
+            <FileText className="w-4 h-4" />
+          </Button>
+          <Button
+            size="small"
+            fillMode="flat"
+            onClick={() => handleExportExcel(dataItem.id)}
+            title="Export Excel"
+            disabled={exportExcelMutation.isPending}
+          >
+            <Download className="w-4 h-4" />
+          </Button>
+          <Button
+            size="small"
+            fillMode="flat"
+            themeColor="error"
+            onClick={() => handleDelete(dataItem.id)}
+            title="Delete Receipt"
+            disabled={deleteMutation.isPending}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
       </td>
     );
   };
 
   const PaymentMethodCell = (props: any) => {
     const { dataItem } = props;
-    const methodColors = {
-      cash: 'bg-green-100 text-green-800',
-      card: 'bg-blue-100 text-blue-800',
-      check: 'bg-yellow-100 text-yellow-800',
-      bank_transfer: 'bg-purple-100 text-purple-800',
-      digital_wallet: 'bg-indigo-100 text-indigo-800',
+    const methodConfig = {
+      cash: { color: 'bg-green-100 text-green-800', icon: DollarSign },
+      card: { color: 'bg-blue-100 text-blue-800', icon: CreditCard },
+      check: { color: 'bg-yellow-100 text-yellow-800', icon: FileText },
+      bank_transfer: { color: 'bg-purple-100 text-purple-800', icon: TrendingUp },
+      digital_wallet: { color: 'bg-indigo-100 text-indigo-800', icon: CreditCard },
     };
+    
+    const config = methodConfig[dataItem.paymentMethod as keyof typeof methodConfig] || methodConfig.cash;
+    const Icon = config.icon;
     
     return (
       <td>
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${methodColors[dataItem.paymentMethod as keyof typeof methodColors]}`}>
+        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
+          <Icon className="w-3 h-3 mr-1" />
           {dataItem.paymentMethod.replace('_', ' ')}
         </span>
       </td>
     );
   };
 
-  return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Receipt Management (B2C)</h2>
-        <Button
-          themeColor="primary"
-          onClick={handleCreate}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Receipt
-        </Button>
-      </div>
-
-      <Grid
-        data={receipts}
-        style={{ height: '600px' }}
-        sortable
-        filterable
-        pageable={{
-          buttonCount: 5,
-          pageSizes: [10, 20, 50],
-        }}
-      >
-        <GridToolbar>
-          <div className="flex justify-between items-center w-full">
-            <span className="text-sm text-gray-600">
-              Total: {receipts.length} receipts
-            </span>
+  const StatCard = ({ title, value, icon: Icon, color, subtitle }: {
+    title: string;
+    value: string | number;
+    icon: any;
+    color: string;
+    subtitle?: string;
+  }) => (
+    <Card className="hover:shadow-lg transition-shadow duration-200 border-l-4" style={{ borderLeftColor: color }}>
+      <CardBody className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600">{title}</p>
+            <p className="text-2xl font-bold text-gray-900">{value}</p>
+            {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
           </div>
-        </GridToolbar>
-        
-        <GridColumn field="receiptNumber" title="Receipt #" width="150px" />
-        <GridColumn field="issuerName" title="Business" width="200px" />
-        <GridColumn field="issueDate" title="Date" width="120px" format="{0:d}" />
-        <GridColumn 
-          field="paymentMethod" 
-          title="Payment" 
-          width="120px"
-          cells={{ data: PaymentMethodCell }}
-        />
-        <GridColumn 
-          field="total" 
-          title="Total" 
-          width="120px"
-          format="{0:c2}"
-          className="text-right"
-        />
-        <GridColumn
-          title="Actions"
-          width="300px"
-          cells={{ data: ActionCell }}
-          filterable={false}
-          sortable={false}
-        />
-      </Grid>
+          <div 
+            className="p-3 rounded-full bg-gradient-to-br from-opacity-20 to-opacity-30"
+            style={{ backgroundColor: `${color}20` }}
+          >
+            <Icon className="w-6 h-6" style={{ color }} />
+          </div>
+        </div>
+      </CardBody>
+    </Card>
+  );
 
-      {showDialog && (
-        <Dialog
-          title={editingReceipt ? 'Edit Receipt' : 'Create New Receipt'}
-          onClose={() => setShowDialog(false)}
-          width={800}
-          height={600}
-        >
-          <ReceiptForm
-            receipt={editingReceipt}
-            onSubmit={handleSubmit}
-            onCancel={() => setShowDialog(false)}
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <Loader size="large" />
+          <span className="ml-3 text-lg">Loading receipts...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Fade>
+      <div className="py-6 px-12  space-y-6 w-screen">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">Receipt Management (B2C)</h2>
+            <p className="text-gray-600 mt-1">Manage customer receipts and transactions</p>
+          </div>
+          <Button
+            themeColor="primary"
+            onClick={handleCreate}
+            size="large"
+            disabled={createMutation.isPending}
+          >
+            <span className="flex items-center">
+              <Plus className="w-5 h-5 mr-2" />
+              Create Receipt
+            </span>
+          </Button>
+        </div>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title="Total Receipts"
+            value={stats.total}
+            icon={Receipt}
+            color="#3b82f6"
+            subtitle={`${stats.thisMonth} this month`}
           />
-        </Dialog>
-      )}
-    </div>
+          <StatCard
+            title="Total Revenue"
+            value={`$${stats.totalRevenue.toLocaleString()}`}
+            icon={DollarSign}
+            color="#10b981"
+            subtitle={`Avg: $${stats.averageAmount.toFixed(2)}`}
+          />
+          <StatCard
+            title="Total Tax Collected"
+            value={`$${stats.totalTax.toLocaleString()}`}
+            icon={TrendingUp}
+            color="#8b5cf6"
+          />
+          <StatCard
+            title="Payment Methods"
+            value={`${stats.paymentMethods.cash + stats.paymentMethods.card}`}
+            icon={CreditCard}
+            color="#f59e0b"
+            subtitle={`Cash: ${stats.paymentMethods.cash}, Card: ${stats.paymentMethods.card}`}
+          />
+        </div>
+
+        {/* Payment Method Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Method Distribution</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span>Cash: {stats.paymentMethods.cash}</span>
+                <span>Card: {stats.paymentMethods.card}</span>
+                <span>Other: {stats.paymentMethods.other}</span>
+              </div>
+              <ProgressBar 
+                value={stats.total > 0 ? (stats.paymentMethods.card / stats.total) * 100 : 0}
+                className="h-3"
+              />
+              <div className="text-xs text-gray-500 text-center">
+                {stats.total > 0 ? ((stats.paymentMethods.card / stats.total) * 100).toFixed(1) : 0}% card payments
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* Main Grid */}
+        <Card>
+          <CardBody className="p-0">
+            <Grid
+              data={receipts}
+              style={{ height: '600px' }}
+              sortable
+              filterable
+              pageable={{
+                buttonCount: 5,
+                pageSizes: [10, 20, 50],
+              }}
+            >
+              <GridToolbar>
+                <div className="flex justify-between items-center w-full p-4">
+                  <span className="text-sm text-gray-600">
+                    Showing {receipts.length} receipts
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      size="small"
+                      fillMode="outline"
+                      onClick={() => refetch()}
+                      disabled={isLoading}
+                      
+                    >
+                      <span className="flex items-center">
+                      <Search className="w-4 h-4 mr-1" />
+                      Refresh
+                      </span>
+                    </Button>
+                  </div>
+                </div>
+              </GridToolbar>
+              
+              <GridColumn field="receiptNumber" title="Receipt #" />
+              <GridColumn field="issuerName" title="Business" />
+              <GridColumn field="issueDate" title="Date" format="{0:d}" />
+              <GridColumn 
+                field="paymentMethod" 
+                title="Payment" 
+                cells={{ data: PaymentMethodCell }}
+              />
+              <GridColumn 
+                field="total" 
+                title="Total" 
+                format="{0:c2}"
+                className="text-right font-semibold"
+              />
+              <GridColumn
+                title="Actions"
+                cells={{ data: ActionCell }}
+                filterable={false}
+                sortable={false}
+              />
+            </Grid>
+          </CardBody>
+        </Card>
+
+        {/* Dialog with Animation */}
+        {showDialog && (
+          <Slide direction="up">
+            <Dialog
+              title={editingReceipt ? 'Edit Receipt' : 'Create New Receipt'}
+              onClose={() => setShowDialog(false)}
+              width={800}
+              height={700}
+            >
+              <ReceiptForm
+                receipt={editingReceipt}
+                onSubmit={handleSubmit}
+                onCancel={() => setShowDialog(false)}
+              />
+            </Dialog>
+          </Slide>
+        )}
+      </div>
+    </Fade>
   );
 }

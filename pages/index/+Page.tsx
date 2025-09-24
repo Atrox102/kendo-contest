@@ -1,4 +1,4 @@
-
+﻿
 import { useState } from "react";
 import Navigation from "../../components/Navigation";
 import Analytics from "../../components/Analytics";
@@ -27,7 +27,7 @@ export default function Page() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation currentPage={currentPage} onPageChange={setCurrentPage} />
-      <main className="max-w-7xl mx-auto">
+      <main className="flex justify-center items-center">
         {renderCurrentPage()}
       </main>
     </div>
