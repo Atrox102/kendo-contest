@@ -21,10 +21,11 @@ export default function TaxManager({ taxes, subtotal, onChange }: TaxManagerProp
 
   const addTax = () => {
     if (newTax.taxName.trim() && newTax.taxRate > 0) {
-      const taxAmount = (subtotal * newTax.taxRate) / 100;
+      const rate = newTax.taxRate / 100; // Convert percentage to decimal
+      const taxAmount = subtotal * rate;
       const updatedTaxes = [...taxes, {
         taxName: newTax.taxName.trim(),
-        taxRate: newTax.taxRate / 100, // Convert percentage to decimal
+        taxRate: rate,
         taxAmount: taxAmount
       }];
       onChange(updatedTaxes);

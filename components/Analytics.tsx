@@ -2,13 +2,10 @@
 import { Card, CardBody, CardHeader, CardTitle } from "@progress/kendo-react-layout";
 import { Chart, ChartSeries, ChartSeriesItem, ChartCategoryAxis, ChartCategoryAxisItem, ChartValueAxis, ChartValueAxisItem, ChartLegend } from "@progress/kendo-react-charts";
 import { Grid, GridColumn } from "@progress/kendo-react-grid";
-import { DateRangePicker } from "@progress/kendo-react-dateinputs";
-import { DropDownList } from "@progress/kendo-react-dropdowns";
 import { Fade, Slide, Expand } from "@progress/kendo-react-animation";
-import { ProgressBar } from "@progress/kendo-react-progressbars";
 import { Loader } from "@progress/kendo-react-indicators";
 import { trpc } from "../lib/trpc";
-import { TrendingUp, TrendingDown, DollarSign, FileText, Receipt, Package } from "lucide-react";
+import { DollarSign, FileText, Receipt, Package } from "lucide-react";
 
 interface AnalyticsProps {
   className?: string;
@@ -18,17 +15,10 @@ interface StatCardProps {
   title: string;
   value: string;
   icon: React.ComponentType<any>;
-  trend?: 'up' | 'down';
-  trendValue?: string;
   color?: string;
 }
 
 export default function Analytics({ className = "" }: AnalyticsProps) {
-  const [dateRange, setDateRange] = useState({
-    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-    end: new Date()
-  });
-  const [period, setPeriod] = useState('month');
   const [showCards, setShowCards] = useState(false);
   const [showCharts, setShowCharts] = useState(false);
   const [showTables, setShowTables] = useState(false);
@@ -53,32 +43,22 @@ export default function Analytics({ className = "" }: AnalyticsProps) {
   }, []);
 
   const analytics = useMemo(() => {
-    const filteredInvoices = invoices.filter(invoice => {
-      const invoiceDate = new Date(invoice.issueDate);
-      return invoiceDate >= dateRange.start && invoiceDate <= dateRange.end;
-    });
-
-    const filteredReceipts = receipts.filter(receipt => {
-      const receiptDate = new Date(receipt.issueDate);
-      return receiptDate >= dateRange.start && receiptDate <= dateRange.end;
-    });
-
-    const totalInvoiceRevenue = filteredInvoices.reduce((sum, inv) => sum + inv.total, 0);
-    const totalReceiptRevenue = filteredReceipts.reduce((sum, rec) => sum + rec.total, 0);
+    const totalInvoiceRevenue = invoices.reduce((sum, inv) => sum + inv.total, 0);
+    const totalReceiptRevenue = receipts.reduce((sum, rec) => sum + rec.total, 0);
     const totalRevenue = totalInvoiceRevenue + totalReceiptRevenue;
-    const totalTax = filteredInvoices.reduce((sum, inv) => sum + inv.totalTax, 0) + 
-                    filteredReceipts.reduce((sum, rec) => sum + rec.totalTax, 0);
+    const totalTax = invoices.reduce((sum, inv) => sum + inv.totalTax, 0) + 
+                    receipts.reduce((sum, rec) => sum + rec.totalTax, 0);
 
     // Revenue by month
     const revenueByMonth: Record<string, number> = {};
-    [...filteredInvoices, ...filteredReceipts].forEach(doc => {
+    [...invoices, ...receipts].forEach(doc => {
       const month = new Date(doc.issueDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
       revenueByMonth[month] = (revenueByMonth[month] || 0) + doc.total;
     });
 
     // Top products by revenue
     const productRevenue: Record<string, number> = {};
-    [...filteredInvoices, ...filteredReceipts].forEach(doc => {
+    [...invoices, ...receipts].forEach(doc => {
       // Check if doc has items property (invoices and receipts have items)
       if ('items' in doc && doc.items && Array.isArray(doc.items)) {
         (doc.items as any[]).forEach((item: any) => {
@@ -93,7 +73,7 @@ export default function Analytics({ className = "" }: AnalyticsProps) {
       .map(([name, revenue]) => ({ productName: name, revenue }));
 
     // Invoice status distribution
-    const invoiceStatusCounts: Record<string, number> = filteredInvoices.reduce((acc, inv) => {
+    const invoiceStatusCounts: Record<string, number> = invoices.reduce((acc, inv) => {
       acc[inv.status] = (acc[inv.status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -103,37 +83,22 @@ export default function Analytics({ className = "" }: AnalyticsProps) {
       totalInvoiceRevenue,
       totalReceiptRevenue,
       totalTax,
-      invoiceCount: filteredInvoices.length,
-      receiptCount: filteredReceipts.length,
+      invoiceCount: invoices.length,
+      receiptCount: receipts.length,
       productCount: products.length,
       revenueByMonth: Object.entries(revenueByMonth).map(([month, revenue]) => ({ month, revenue })),
       topProducts,
       invoiceStatusCounts: Object.entries(invoiceStatusCounts).map(([status, count]) => ({ status, count }))
     };
-  }, [invoices, receipts, products, dateRange]);
+  }, [invoices, receipts, products]);
 
-  const StatCard = ({ title, value, icon: Icon, trend, trendValue, color = "primary" }: StatCardProps) => (
+  const StatCard = ({ title, value, icon: Icon, color = "primary" }: StatCardProps) => (
     <Card className="h-full hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border-l-4 border-l-blue-500">
       <CardBody className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <p className="text-sm font-medium text-gray-600 mb-2">{title}</p>
             <p className="text-3xl font-bold text-gray-900 mb-2">{value}</p>
-              {trend && (
-                <Fade>
-                  <div className={`flex items-center text-sm font-medium ${trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-                    {trend === 'up' ? <TrendingUp className="w-4 h-4 mr-1 animate-pulse" /> : <TrendingDown className="w-4 h-4 mr-1 animate-pulse" />}
-                    {trendValue}
-                  </div>
-                </Fade>
-              )}
-            <div className="mt-3">
-              <ProgressBar 
-                value={75} 
-                className="h-2" 
-                style={{ height: '6px' }}
-              />
-            </div>
           </div>
           <div className="ml-4">
             <div className={`p-4 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 shadow-inner`}>
@@ -158,60 +123,30 @@ export default function Analytics({ className = "" }: AnalyticsProps) {
 
   return (
     <div className={`py-6 px-12  space-y-6 w-screen ${className}`}>
-      <Fade className="w-full">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white p-6 rounded-xl shadow-sm border">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Analytics Dashboard</h1>
-            <p className="text-gray-600">Track your business performance and insights</p>
-          </div>
-          <div className="mt-4 sm:mt-0 flex gap-6 space-x-4">
-            <DropDownList
-              data={['week', 'month', 'quarter', 'year']}
-              value={period}
-              onChange={(e) => setPeriod(e.value)}
-              className="w-32"
-              fillMode="outline"
-            />
-            <DateRangePicker
-              value={{ start: dateRange.start || new Date(), end: dateRange.end || new Date() }}
-              onChange={(e) => setDateRange({ start: e.value.start || new Date(), end: e.value.end || new Date() })}
-            />
-          </div>
-        </div>
-      </Fade>
-
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Revenue"
           value={`$${analytics.totalRevenue.toLocaleString()}`}
           icon={DollarSign}
-          trend="up"
-          trendValue="12.5%"
           color="green"
         />
         <StatCard
           title="Invoices"
           value={analytics.invoiceCount.toString()}
           icon={FileText}
-          trend="up"
-          trendValue="8.2%"
           color="blue"
         />
         <StatCard
           title="Receipts"
           value={analytics.receiptCount.toString()}
           icon={Receipt}
-          trend="up"
-          trendValue="5.1%"
           color="purple"
         />
         <StatCard
           title="Products"
           value={analytics.productCount.toString()}
           icon={Package}
-          trend="up"
-          trendValue="2.3%"
           color="orange"
         />
       </div>

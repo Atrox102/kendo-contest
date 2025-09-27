@@ -76,6 +76,7 @@ export const invoicesRouter = router({
         clientTaxId: z.string().optional(),
         issueDate: z.string(),
         dueDate: z.string().optional(),
+        status: z.string().optional(),
         notes: z.string().optional(),
         items: z.array(invoiceItemSchema).min(1, "At least one item is required"),
       })

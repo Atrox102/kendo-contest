@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Grid, GridColumn, GridToolbar } from "@progress/kendo-react-grid";
 import { Button } from "@progress/kendo-react-buttons";
 import { Dialog, DialogActionsBar } from "@progress/kendo-react-dialogs";
@@ -51,6 +51,29 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
 }) => {
   const [items, setItems] = useState<ReceiptItem[]>(receipt?.items || []);
   const { data: products = [] } = trpc.products.list.useQuery();
+
+  // Update items when receipt prop changes
+  useEffect(() => {
+    if (receipt?.items) {
+      // Ensure all items have properly calculated taxes and line totals
+      const updatedItems = receipt.items.map(item => {
+        const subtotal = item.quantity * item.unitPrice;
+        const updatedTaxes = item.taxes.map(tax => ({
+          ...tax,
+          taxAmount: subtotal * tax.taxRate
+        }));
+        const totalTaxAmount = updatedTaxes.reduce((sum, tax) => sum + tax.taxAmount, 0);
+        return {
+          ...item,
+          taxes: updatedTaxes,
+          lineTotal: subtotal + totalTaxAmount
+        };
+      });
+      setItems(updatedItems);
+    } else {
+      setItems([]);
+    }
+  }, [receipt]);
 
   const addItem = () => {
     setItems([...items, {
@@ -134,6 +157,7 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
   return (
     <Fade>
       <Form
+        key={receipt?.id || 'new'}
         onSubmit={handleSubmit}
         initialValues={{
           receiptNumber: receipt?.receiptNumber || '',
@@ -167,7 +191,7 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
                   name="paymentMethod"
                   component={DropDownList}
                   label="Payment Method"
-                  data={['cash', 'card', 'check', 'bank_transfer', 'digital_wallet']}
+                  data={['cash', 'card', 'transfer']}
                   required
                 />
               </fieldset>
@@ -326,14 +350,20 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
 export default function ReceiptManagement() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingReceipt, setEditingReceipt] = useState<Receipt | undefined>();
+  const [editingReceiptId, setEditingReceiptId] = useState<number | undefined>();
 
   // tRPC queries and mutations
   const { data: receipts = [], refetch, isLoading } = trpc.receipts.list.useQuery();
+  const { data: fullReceiptData, isLoading: isLoadingFullReceipt } = trpc.receipts.getById.useQuery(
+    { id: editingReceiptId! },
+    { enabled: !!editingReceiptId }
+  );
   const createMutation = trpc.receipts.create.useMutation({
     onSuccess: () => {
       refetch();
       setShowDialog(false);
       setEditingReceipt(undefined);
+      setEditingReceiptId(undefined);
     },
   });
   const updateMutation = trpc.receipts.update.useMutation({
@@ -341,6 +371,7 @@ export default function ReceiptManagement() {
       refetch();
       setShowDialog(false);
       setEditingReceipt(undefined);
+      setEditingReceiptId(undefined);
     },
   });
   const deleteMutation = trpc.receipts.delete.useMutation({
@@ -376,7 +407,7 @@ export default function ReceiptManagement() {
     paymentMethods: {
       cash: receipts.filter(r => r.paymentMethod === 'cash').length,
       card: receipts.filter(r => r.paymentMethod === 'card').length,
-      other: receipts.filter(r => !['cash', 'card'].includes(r.paymentMethod as "cash" | "card" | "transfer")).length,
+      transfer: receipts.filter(r => r.paymentMethod === 'transfer').length,
     },
     thisMonth: receipts.filter(r => {
       const receiptDate = new Date(r.issueDate);
@@ -385,14 +416,38 @@ export default function ReceiptManagement() {
     }).length,
   };
 
+  // Effect to handle full receipt data loading
+  useEffect(() => {
+    if (fullReceiptData && editingReceiptId) {
+      // Convert database types to frontend types, handling nullable fields
+      const convertedReceipt: Receipt = {
+        ...fullReceiptData,
+        paymentMethod: fullReceiptData.paymentMethod || 'cash', // Default to 'cash' if null
+        issuerAddress: fullReceiptData.issuerAddress || undefined, // Handle nullable issuerAddress
+        notes: fullReceiptData.notes || undefined, // Handle nullable notes
+        items: fullReceiptData.items?.map(item => ({
+          ...item,
+          productId: item.productId || undefined, // Convert null to undefined
+          description: item.description || undefined, // Convert null to undefined
+        })) || [], // Handle nullable items
+      };
+      setEditingReceipt(convertedReceipt);
+      setShowDialog(true);
+    }
+  }, [fullReceiptData, editingReceiptId]);
+
   const handleCreate = () => {
     setEditingReceipt(undefined);
+    setEditingReceiptId(undefined);
     setShowDialog(true);
   };
 
   const handleEdit = (receipt: Receipt) => {
-    setEditingReceipt(receipt);
-    setShowDialog(true);
+    if (receipt.id) {
+      setEditingReceiptId(receipt.id);
+      // The useEffect above will handle setting the editingReceipt and showing dialog
+      // once the full data is loaded
+    }
   };
 
   const handleDelete = (id: number) => {
@@ -611,10 +666,10 @@ export default function ReceiptManagement() {
           />
           <StatCard
             title="Payment Methods"
-            value={`${stats.paymentMethods.cash + stats.paymentMethods.card}`}
+            value={`${stats.paymentMethods.cash + stats.paymentMethods.card + stats.paymentMethods.transfer}`}
             icon={CreditCard}
             color="#f59e0b"
-            subtitle={`Cash: ${stats.paymentMethods.cash}, Card: ${stats.paymentMethods.card}`}
+            subtitle={`Cash: ${stats.paymentMethods.cash}, Card: ${stats.paymentMethods.card}, Transfer: ${stats.paymentMethods.transfer}`}
           />
         </div>
 
@@ -628,7 +683,7 @@ export default function ReceiptManagement() {
               <div className="flex justify-between text-sm">
                 <span>Cash: {stats.paymentMethods.cash}</span>
                 <span>Card: {stats.paymentMethods.card}</span>
-                <span>Other: {stats.paymentMethods.other}</span>
+                <span>Transfer: {stats.paymentMethods.transfer}</span>
               </div>
               <ProgressBar 
                 value={stats.total > 0 ? (stats.paymentMethods.card / stats.total) * 100 : 0}
@@ -705,15 +760,30 @@ export default function ReceiptManagement() {
           <Slide direction="up">
             <Dialog
               title={editingReceipt ? 'Edit Receipt' : 'Create New Receipt'}
-              onClose={() => setShowDialog(false)}
-              width={800}
+              onClose={() => {
+                setShowDialog(false);
+                setEditingReceipt(undefined);
+                setEditingReceiptId(undefined);
+              }}
+              width={700}
               height={700}
             >
-              <ReceiptForm
-                receipt={editingReceipt}
-                onSubmit={handleSubmit}
-                onCancel={() => setShowDialog(false)}
-              />
+              {isLoadingFullReceipt && editingReceiptId ? (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+                  <Loader size="large" />
+                  <span style={{ marginLeft: '10px' }}>Loading receipt details...</span>
+                </div>
+              ) : (
+                <ReceiptForm
+                  receipt={editingReceipt}
+                  onSubmit={handleSubmit}
+                  onCancel={() => {
+                    setShowDialog(false);
+                    setEditingReceipt(undefined);
+                    setEditingReceiptId(undefined);
+                  }}
+                />
+              )}
             </Dialog>
           </Slide>
         )}

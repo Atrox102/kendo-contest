@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Grid, GridColumn, GridToolbar } from "@progress/kendo-react-grid";
 import { Button } from "@progress/kendo-react-buttons";
 import { Dialog, DialogActionsBar } from "@progress/kendo-react-dialogs";
@@ -56,6 +56,29 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
 }) => {
   const [items, setItems] = useState<InvoiceItem[]>(invoice?.items || []);
   const { data: products = [] } = trpc.products.list.useQuery();
+
+  // Update items when invoice prop changes
+  useEffect(() => {
+    if (invoice?.items) {
+      // Ensure all items have properly calculated taxes and line totals
+      const updatedItems = invoice.items.map(item => {
+        const subtotal = item.quantity * item.unitPrice;
+        const updatedTaxes = item.taxes.map(tax => ({
+          ...tax,
+          taxAmount: subtotal * tax.taxRate
+        }));
+        const totalTaxAmount = updatedTaxes.reduce((sum, tax) => sum + tax.taxAmount, 0);
+        return {
+          ...item,
+          taxes: updatedTaxes,
+          lineTotal: subtotal + totalTaxAmount
+        };
+      });
+      setItems(updatedItems);
+    } else {
+      setItems([]);
+    }
+  }, [invoice]);
 
   const addItem = () => {
     setItems([...items, {
@@ -143,6 +166,7 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
 
   return (
     <Form
+      key={invoice?.id || 'new'}
       onSubmit={handleSubmit}
       initialValues={{
         invoiceNumber: invoice?.invoiceNumber || '',
@@ -369,14 +393,20 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
 export default function InvoiceManagement() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | undefined>();
+  const [editingInvoiceId, setEditingInvoiceId] = useState<number | undefined>();
 
   // tRPC queries and mutations
   const { data: invoices = [], refetch, isLoading } = trpc.invoices.list.useQuery();
+  const { data: fullInvoiceData } = trpc.invoices.getById.useQuery(
+    { id: editingInvoiceId! },
+    { enabled: !!editingInvoiceId }
+  );
   const createMutation = trpc.invoices.create.useMutation({
     onSuccess: () => {
       refetch();
       setShowDialog(false);
       setEditingInvoice(undefined);
+      setEditingInvoiceId(undefined);
     },
   });
   const updateMutation = trpc.invoices.update.useMutation({
@@ -384,6 +414,7 @@ export default function InvoiceManagement() {
       refetch();
       setShowDialog(false);
       setEditingInvoice(undefined);
+      setEditingInvoiceId(undefined);
     },
   });
   const deleteMutation = trpc.invoices.delete.useMutation({
@@ -423,13 +454,42 @@ export default function InvoiceManagement() {
 
   const handleCreate = () => {
     setEditingInvoice(undefined);
+    setEditingInvoiceId(undefined);
     setShowDialog(true);
   };
 
   const handleEdit = (invoice: Invoice) => {
-    setEditingInvoice(invoice);
+    setEditingInvoiceId(invoice.id);
     setShowDialog(true);
   };
+
+  // Update editing invoice when full data is loaded
+  useEffect(() => {
+    if (fullInvoiceData) {
+      // Transform the data to match the Invoice interface
+      const transformedInvoice: Invoice = {
+        ...fullInvoiceData,
+        dueDate: fullInvoiceData.dueDate || undefined,
+        issuerAddress: fullInvoiceData.issuerAddress || undefined,
+        issuerTaxId: fullInvoiceData.issuerTaxId || undefined,
+        clientAddress: fullInvoiceData.clientAddress || undefined,
+        clientTaxId: fullInvoiceData.clientTaxId || undefined,
+        notes: fullInvoiceData.notes || undefined,
+        status: fullInvoiceData.status as "draft" | "sent" | "paid" | "overdue",
+        items: fullInvoiceData.items?.map(item => ({
+          ...item,
+          productId: item.productId || undefined,
+          description: item.description || undefined,
+          taxes: item.taxes.map(tax => ({
+            taxName: tax.taxName,
+            taxRate: tax.taxRate,
+            taxAmount: tax.taxAmount,
+          })),
+        })),
+      };
+      setEditingInvoice(transformedInvoice);
+    }
+  }, [fullInvoiceData]);
 
   const handleDelete = (id: number) => {
     if (confirm('Are you sure you want to delete this invoice?')) {
@@ -467,9 +527,11 @@ export default function InvoiceManagement() {
         invoiceNumber: data.invoiceNumber,
         issuerName: data.issuerName,
         issuerAddress: data.issuerAddress,
+        issuerTaxId: data.issuerTaxId,
         clientName: data.clientName,
         clientAddress: data.clientAddress,
-          issueDate: convertDateToString(data.issueDate),
+        clientTaxId: data.clientTaxId,
+        issueDate: convertDateToString(data.issueDate),
         dueDate: data.dueDate ? convertDateToString(data.dueDate) : data.dueDate,
         notes: data.notes,
         status: data.status as "draft" | "sent" | "paid" | "overdue" | undefined,
@@ -482,10 +544,13 @@ export default function InvoiceManagement() {
         invoiceNumber: createData.invoiceNumber,
         issuerName: createData.issuerName,
         issuerAddress: createData.issuerAddress,
+        issuerTaxId: createData.issuerTaxId,
         clientName: createData.clientName,
         clientAddress: createData.clientAddress,
+        clientTaxId: createData.clientTaxId,
         issueDate: convertDateToString(createData.issueDate),
         dueDate: createData.dueDate ? convertDateToString(createData.dueDate) : createData.dueDate,
+        status: createData.status as "draft" | "sent" | "paid" | "overdue" | undefined,
         notes: createData.notes,
         items: processedItems,
       });
@@ -743,14 +808,22 @@ export default function InvoiceManagement() {
           <Slide direction="up">
             <Dialog
               title={editingInvoice ? 'Edit Invoice' : 'Create New Invoice'}
-              onClose={() => setShowDialog(false)}
+              onClose={() => {
+                setShowDialog(false);
+                setEditingInvoice(undefined);
+                setEditingInvoiceId(undefined);
+              }}
               width={900}
               height={700}
             >
               <InvoiceForm
                 invoice={editingInvoice}
                 onSubmit={handleSubmit}
-                onCancel={() => setShowDialog(false)}
+                onCancel={() => {
+                  setShowDialog(false);
+                  setEditingInvoice(undefined);
+                  setEditingInvoiceId(undefined);
+                }}
               />
             </Dialog>
           </Slide>
