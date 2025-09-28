@@ -703,7 +703,6 @@ export default function ReceiptManagement() {
               data={receipts}
               style={{ height: '600px' }}
               sortable
-              filterable
               pageable={{
                 buttonCount: 5,
                 pageSizes: [10, 20, 50],

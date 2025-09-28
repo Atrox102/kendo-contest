@@ -430,7 +430,6 @@ export default function ProductManagement() {
               data={products}
               style={{ height: '600px' }}
               sortable
-              filterable
               pageable={{
                 buttonCount: 5,
                 pageSizes: [10, 20, 50],

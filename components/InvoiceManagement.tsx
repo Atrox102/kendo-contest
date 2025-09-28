@@ -752,7 +752,6 @@ export default function InvoiceManagement() {
               data={invoices}
               style={{ height: '600px' }}
               sortable
-              filterable
               pageable={{
                 buttonCount: 5,
                 pageSizes: [10, 20, 50],
