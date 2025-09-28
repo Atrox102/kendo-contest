@@ -5,7 +5,7 @@
     "server:dev": "tsx watch server/index.ts",
     "build": "vike build",
     "preview": "vike preview",
-    "server": "tsx server/index.ts",
+    "start": "NODE_ENV=production tsx server/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },
