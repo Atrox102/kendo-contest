@@ -7,7 +7,12 @@
     "preview": "vike preview",
     "start": "NODE_ENV=production tsx server/index.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx scripts/seed-database.ts",
+    "db:wipe": "tsx scripts/cli.ts wipe",
+    "db:cli": "tsx scripts/cli.ts",
+    "db:scheduler": "tsx scripts/scheduler.ts",
+    "db:service": "tsx scripts/service.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.3",
