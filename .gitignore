@@ -143,3 +143,7 @@ dist
 # aws-cdk
 .cdk.staging
 cdk.out
+
+database/invoice.db
+database/invoice.db-shm
+database/invoice.db-wal
