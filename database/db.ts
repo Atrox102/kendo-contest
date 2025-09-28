@@ -5,7 +5,7 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
 
-const dbPath = './database/invoice.db';
+const dbPath = './sqlite/invoice.db';
 
 // Ensure database directory exists
 const dbDir = dirname(dbPath);
