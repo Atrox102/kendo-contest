@@ -56,71 +56,81 @@ export default function TaxManager({ taxes, subtotal, onChange }: TaxManagerProp
       
       {/* Existing taxes */}
       {taxes.map((tax, index) => (
-        <div key={index} className="flex items-center gap-2 p-2 border rounded">
-          <div className="flex-1">
-            <Input
-              value={tax.taxName}
-              onChange={(e) => updateTax(index, 'taxName', String(e.target.value || ''))}
-              placeholder="Tax name (e.g., VAT, Sales Tax)"
-              style={{ width: '100%' }}
-            />
+        <div key={index} className="border rounded p-2 sm:p-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+            <div className="flex-1 min-w-0">
+              <Input
+                value={tax.taxName}
+                onChange={(e) => updateTax(index, 'taxName', String(e.target.value || ''))}
+                placeholder="Tax name (e.g., VAT, Sales Tax)"
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-20 sm:w-24">
+                <NumericTextBox
+                  value={tax.taxRate * 100} // Convert decimal to percentage for display
+                  onChange={(e) => updateTax(index, 'taxRate', e.value || 0)}
+                  format="n2"
+                  min={0}
+                  max={100}
+                  placeholder="Rate %"
+                />
+              </div>
+              <div className="w-16 sm:w-20 text-xs sm:text-sm text-gray-600 text-center">
+                ${tax.taxAmount.toFixed(2)}
+              </div>
+              <Button
+                type="button"
+                fillMode="flat"
+                themeColor="error"
+                onClick={() => removeTax(index)}
+                className="flex-shrink-0"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-          <div className="w-24">
-            <NumericTextBox
-              value={tax.taxRate * 100} // Convert decimal to percentage for display
-              onChange={(e) => updateTax(index, 'taxRate', e.value || 0)}
-              format="n2"
-              min={0}
-              max={100}
-              placeholder="Rate %"
-            />
-          </div>
-          <div className="w-20 text-sm text-gray-600">
-            ${tax.taxAmount.toFixed(2)}
-          </div>
-          <Button
-            type="button"
-            fillMode="flat"
-            themeColor="error"
-            onClick={() => removeTax(index)}
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
         </div>
       ))}
 
       {/* Add new tax */}
-      <div className="flex items-center gap-2 p-2 border border-dashed rounded">
-        <div className="flex-1">
-          <Input
-            value={newTax.taxName}
-            onChange={(e) => setNewTax({ ...newTax, taxName: String(e.target.value || '') })}
-            placeholder="Tax name (e.g., VAT, Sales Tax)"
-            style={{ width: '100%' }}
-          />
+      <div className="border border-dashed rounded p-2 sm:p-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          <div className="flex-1 min-w-0">
+            <Input
+              value={newTax.taxName}
+              onChange={(e) => setNewTax({ ...newTax, taxName: String(e.target.value || '') })}
+              placeholder="Tax name (e.g., VAT, Sales Tax)"
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-20 sm:w-24">
+              <NumericTextBox
+                value={newTax.taxRate}
+                onChange={(e) => setNewTax({ ...newTax, taxRate: e.value || 0 })}
+                format="n2"
+                min={0}
+                max={100}
+                placeholder="Rate %"
+              />
+            </div>
+            <div className="w-16 sm:w-20 text-xs sm:text-sm text-gray-600 text-center">
+              ${((subtotal * newTax.taxRate) / 100).toFixed(2)}
+            </div>
+            <Button
+              type="button"
+              fillMode="outline"
+              themeColor="primary"
+              onClick={addTax}
+              disabled={!newTax.taxName.trim() || newTax.taxRate <= 0}
+              className="flex-shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
-        <div className="w-24">
-          <NumericTextBox
-            value={newTax.taxRate}
-            onChange={(e) => setNewTax({ ...newTax, taxRate: e.value || 0 })}
-            format="n2"
-            min={0}
-            max={100}
-            placeholder="Rate %"
-          />
-        </div>
-        <div className="w-20 text-sm text-gray-600">
-          ${((subtotal * newTax.taxRate) / 100).toFixed(2)}
-        </div>
-        <Button
-          type="button"
-          fillMode="outline"
-          themeColor="primary"
-          onClick={addTax}
-          disabled={!newTax.taxName.trim() || newTax.taxRate <= 0}
-        >
-          <Plus className="w-4 h-4" />
-        </Button>
       </div>
 
       {/* Tax summary */}

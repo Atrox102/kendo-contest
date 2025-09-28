@@ -182,8 +182,8 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
         notes: invoice?.notes || '',
       }}
       render={(formRenderProps) => (
-        <FormElement style={{ maxWidth: 800 }}>
-          <div className="grid grid-cols-2 gap-4">
+        <FormElement style={{ maxWidth: '100%' }}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <fieldset className="k-form-fieldset">
               <legend className="k-form-legend">Invoice Details</legend>
               
@@ -242,7 +242,7 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
           <fieldset className="k-form-fieldset">
             <legend className="k-form-legend">Client Information</legend>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field
                 name="clientName"
                 component={Input}
@@ -272,6 +272,7 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
                 type="button"
                 onClick={addItem}
                 fillMode="outline"
+                className="w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Item
@@ -279,9 +280,9 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
             </div>
 
             {items.map((item, index) => (
-              <div key={index} className="border p-4 mb-4 rounded">
+              <div key={index} className="border p-3 sm:p-4 mb-4 rounded">
                 {/* Basic item info */}
-                <div className="grid grid-cols-4 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                   <div>
                     <label className="k-label">Product</label>
                     <DropDownList
@@ -325,6 +326,7 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
                       fillMode="flat"
                       themeColor="error"
                       onClick={() => removeItem(index)}
+                      className="w-full sm:w-auto"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -332,8 +334,8 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
                 </div>
 
                 {/* Tax management and totals */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-2">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-2">
                     <TaxManager
                       taxes={item.taxes}
                       subtotal={item.quantity * item.unitPrice}
@@ -375,14 +377,17 @@ const InvoiceForm = ({ invoice, onSubmit, onCancel }: {
           />
           
           <DialogActionsBar>
-            <Button
-              type="submit"
-              themeColor="primary"
-              disabled={!formRenderProps.allowSubmit}
-            >
-              {invoice ? 'Update' : 'Create'} Invoice
-            </Button>
-            <Button onClick={onCancel}>Cancel</Button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full">
+              <Button
+                type="submit"
+                themeColor="primary"
+                disabled={!formRenderProps.allowSubmit}
+                className="w-full sm:w-auto"
+              >
+                {invoice ? 'Update' : 'Create'} Invoice
+              </Button>
+              <Button onClick={onCancel} className="w-full sm:w-auto">Cancel</Button>
+            </div>
           </DialogActionsBar>
         </FormElement>
       )}
@@ -672,20 +677,21 @@ export default function InvoiceManagement() {
 
   return (
     <Fade>
-      <div className="py-6 px-12 space-y-6 w-screen">
+      <div className="py-4 px-4 sm:py-6 sm:px-6 lg:px-12 space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">Invoice Management</h2>
-            <p className="text-gray-600 mt-1">Manage your B2B invoices and track payments</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Invoice Management</h2>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">Manage your B2B invoices and track payments</p>
           </div>
           <Button
             themeColor="primary"
             onClick={handleCreate}
             size="large"
             disabled={createMutation.isPending}
+            className="w-full sm:w-auto"
           >
-            <span className="flex items-center">
+            <span className="flex items-center justify-center">
             <Plus className="w-5 h-5 mr-2" />
               Create Invoice
             </span>
@@ -693,7 +699,7 @@ export default function InvoiceManagement() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total Invoices"
             value={stats.total}
@@ -730,7 +736,7 @@ export default function InvoiceManagement() {
           </CardHeader>
           <CardBody>
             <div className="space-y-3">
-              <div className="flex justify-between text-sm">
+              <div className="flex flex-col sm:flex-row sm:justify-between text-sm gap-2">
                 <span>Paid: ${stats.paidValue.toLocaleString()}</span>
                 <span>Total: ${stats.totalValue.toLocaleString()}</span>
               </div>
@@ -748,57 +754,62 @@ export default function InvoiceManagement() {
         {/* Main Grid */}
         <Card>
           <CardBody className="p-0">
-            <Grid
-              data={invoices}
-              style={{ height: '600px' }}
-              sortable
-              pageable={{
-                buttonCount: 5,
-                pageSizes: [10, 20, 50],
-              }}
-            >
-              <GridToolbar>
-                <div className="flex justify-between items-center w-full p-4">
-                  <span className="text-sm text-gray-600">
-                    Showing {invoices.length} invoices
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      size="small"
-                      fillMode="outline"
-                      onClick={() => refetch()}
-                      disabled={isLoading}
-                    >
-                      <span className="flex items-center">
-                        Refresh
-                      </span>
-                    </Button>
+            <div className="overflow-x-auto">
+              <Grid
+                data={invoices}
+                style={{ height: '600px', minWidth: '700px' }}
+                sortable
+                pageable={{
+                  buttonCount: 3,
+                  pageSizes: [10, 20, 50],
+                }}
+              >
+                <GridToolbar>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full p-4 gap-2">
+                    <span className="text-sm text-gray-600">
+                      Showing {invoices.length} invoices
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        size="small"
+                        fillMode="outline"
+                        onClick={() => refetch()}
+                        disabled={isLoading}
+                      >
+                        <span className="flex items-center">
+                          Refresh
+                        </span>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </GridToolbar>
-              
-              <GridColumn field="invoiceNumber" title="Invoice #" />
-              <GridColumn field="clientName" title="Client" />
-              <GridColumn field="issueDate" title="Issue Date" format="{0:d}" />
-              <GridColumn field="dueDate" title="Due Date" format="{0:d}" />
-              <GridColumn 
-                field="status" 
-                title="Status" 
-                cells={{ data: StatusCell }}
-              />
-              <GridColumn 
-                field="total" 
-                title="Total" 
-                format="{0:c2}"
-                className="text-right font-semibold"
-              />
-              <GridColumn
-                title="Actions"
-                cells={{ data: ActionCell }}
-                filterable={false}
-                sortable={false}
-              />
-            </Grid>
+                </GridToolbar>
+                
+                <GridColumn field="invoiceNumber" title="Invoice #" width="120px" />
+                <GridColumn field="clientName" title="Client" width="150px" />
+                <GridColumn field="issueDate" title="Issue Date" format="{0:d}" width="120px" />
+                <GridColumn field="dueDate" title="Due Date" format="{0:d}" width="120px" />
+                <GridColumn 
+                  field="status" 
+                  title="Status" 
+                  cells={{ data: StatusCell }}
+                  width="120px"
+                />
+                <GridColumn 
+                  field="total" 
+                  title="Total" 
+                  format="{0:c2}"
+                  className="text-right font-semibold"
+                  width="120px"
+                />
+                <GridColumn
+                  title="Actions"
+                  cells={{ data: ActionCell }}
+                  filterable={false}
+                  sortable={false}
+                  width="150px"
+                />
+              </Grid>
+            </div>
           </CardBody>
         </Card>
 
@@ -812,8 +823,8 @@ export default function InvoiceManagement() {
                 setEditingInvoice(undefined);
                 setEditingInvoiceId(undefined);
               }}
-              width={900}
-              height={700}
+              width={window.innerWidth < 768 ? '95%' : 900}
+              height={window.innerWidth < 768 ? '90%' : 700}
             >
               <InvoiceForm
                 invoice={editingInvoice}

@@ -94,15 +94,15 @@ export default function Analytics({ className = "" }: AnalyticsProps) {
 
   const StatCard = ({ title, value, icon: Icon, color = "primary" }: StatCardProps) => (
     <Card className="h-full hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border-l-4 border-l-blue-500">
-      <CardBody className="p-6">
+      <CardBody className="p-3 sm:p-6">
         <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-gray-600 mb-2">{title}</p>
-            <p className="text-3xl font-bold text-gray-900 mb-2">{value}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 sm:mb-2 truncate">{title}</p>
+            <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 truncate">{value}</p>
           </div>
-          <div className="ml-4">
-            <div className={`p-4 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 shadow-inner`}>
-              <Icon className={`w-8 h-8 text-blue-600`} />
+          <div className="ml-2 sm:ml-4 flex-shrink-0">
+            <div className={`p-2 sm:p-4 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 shadow-inner`}>
+              <Icon className={`w-5 h-5 sm:w-8 sm:h-8 text-blue-600`} />
             </div>
           </div>
         </div>
@@ -122,9 +122,9 @@ export default function Analytics({ className = "" }: AnalyticsProps) {
   }
 
   return (
-    <div className={`py-6 px-12  space-y-6 w-screen ${className}`}>
+    <div className={`py-4 px-4 sm:py-6 sm:px-6 lg:px-12 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden ${className}`}>
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <StatCard
           title="Total Revenue"
           value={`$${analytics.totalRevenue.toLocaleString()}`}
@@ -152,51 +152,55 @@ export default function Analytics({ className = "" }: AnalyticsProps) {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         {/* Revenue Trend */}
         <Card>
           <CardHeader>
-            <CardTitle>Revenue Trend</CardTitle>
+            <CardTitle className="text-sm sm:text-base">Revenue Trend</CardTitle>
           </CardHeader>
-          <CardBody>
-            <Chart style={{ height: 300 }}>
-              <ChartSeries>
-                <ChartSeriesItem
-                  type="line"
-                  data={analytics.revenueByMonth}
-                  field="revenue"
-                  categoryField="month"
-                  name="Revenue"
-                />
-              </ChartSeries>
-              <ChartCategoryAxis>
-                <ChartCategoryAxisItem />
-              </ChartCategoryAxis>
-              <ChartValueAxis>
-                <ChartValueAxisItem />
-              </ChartValueAxis>
-              <ChartLegend position="bottom" />
-            </Chart>
+          <CardBody className="p-2 sm:p-4">
+            <div className="w-full overflow-x-auto">
+              <Chart style={{ height: 250, minWidth: 300 }}>
+                <ChartSeries>
+                  <ChartSeriesItem
+                    type="line"
+                    data={analytics.revenueByMonth}
+                    field="revenue"
+                    categoryField="month"
+                    name="Revenue"
+                  />
+                </ChartSeries>
+                <ChartCategoryAxis>
+                  <ChartCategoryAxisItem />
+                </ChartCategoryAxis>
+                <ChartValueAxis>
+                  <ChartValueAxisItem />
+                </ChartValueAxis>
+                <ChartLegend position="bottom" />
+              </Chart>
+            </div>
           </CardBody>
         </Card>
 
         {/* Invoice Status Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle>Invoice Status Distribution</CardTitle>
+            <CardTitle className="text-sm sm:text-base">Invoice Status Distribution</CardTitle>
           </CardHeader>
-          <CardBody>
-            <Chart style={{ height: 300 }}>
-              <ChartSeries>
-                <ChartSeriesItem
-                  type="donut"
-                  data={analytics.invoiceStatusCounts}
-                  field="count"
-                  categoryField="status"
-                />
-              </ChartSeries>
-              <ChartLegend position="bottom" />
-            </Chart>
+          <CardBody className="p-2 sm:p-4">
+            <div className="w-full overflow-x-auto">
+              <Chart style={{ height: 250, minWidth: 300 }}>
+                <ChartSeries>
+                  <ChartSeriesItem
+                    type="donut"
+                    data={analytics.invoiceStatusCounts}
+                    field="count"
+                    categoryField="status"
+                  />
+                </ChartSeries>
+                <ChartLegend position="bottom" />
+              </Chart>
+            </div>
           </CardBody>
         </Card>
       </div>
@@ -204,24 +208,26 @@ export default function Analytics({ className = "" }: AnalyticsProps) {
       {/* Top Products */}
       <Card>
         <CardHeader>
-          <CardTitle>Top Products by Revenue</CardTitle>
+          <CardTitle className="text-sm sm:text-base">Top Products by Revenue</CardTitle>
         </CardHeader>
-        <CardBody>
-          <Grid data={analytics.topProducts} style={{ height: 300 }}>
-            <GridColumn field="productName" title="Product Name" />
-            <GridColumn 
-              field="revenue" 
-              title="Revenue" 
-              cells={{
-                data: (props: any) => <td>${props.dataItem.revenue.toLocaleString()}</td>
-              }}
-            />
-          </Grid>
+        <CardBody className="p-2 sm:p-4">
+          <div className="w-full overflow-x-auto">
+            <Grid data={analytics.topProducts} style={{ height: 250, minWidth: 400 }}>
+              <GridColumn field="productName" title="Product Name" />
+              <GridColumn 
+                field="revenue" 
+                title="Revenue" 
+                cells={{
+                  data: (props: any) => <td>${props.dataItem.revenue.toLocaleString()}</td>
+                }}
+              />
+            </Grid>
+          </div>
         </CardBody>
       </Card>
 
       {/* Revenue Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Revenue Sources</CardTitle>

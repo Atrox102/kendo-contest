@@ -69,7 +69,7 @@ const ProductForm = ({ product, onSubmit, onCancel }: {
           price: product?.defaultPrice || 0,
         }}
         render={(formRenderProps) => (
-          <FormElement style={{ maxWidth: 650 }}>
+          <FormElement style={{ maxWidth: '100%' }}>
             <fieldset className="k-form-fieldset">
               <legend className="k-form-legend">Product Information</legend>
               
@@ -116,7 +116,7 @@ const ProductForm = ({ product, onSubmit, onCancel }: {
               
               {taxes.map((tax, index) => (
                 <Expand key={index}>
-                  <div className="border border-gray-200 p-4 mb-4 rounded-lg bg-gray-50">
+                  <div className="border border-gray-200 p-3 sm:p-4 mb-4 rounded-lg bg-gray-50">
                     <div className="flex justify-between items-center mb-3">
                       <h4 className="font-semibold text-gray-700">Tax {index + 1}</h4>
                       {taxes.length > 1 && (
@@ -132,7 +132,7 @@ const ProductForm = ({ product, onSubmit, onCancel }: {
                       )}
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="k-label">Tax Name</label>
                         <Input
@@ -172,14 +172,17 @@ const ProductForm = ({ product, onSubmit, onCancel }: {
             </fieldset>
             
             <DialogActionsBar>
-              <Button
-                type="submit"
-                themeColor="primary"
-                disabled={!formRenderProps.allowSubmit}
-              >
-                {product ? 'Update' : 'Create'}
-              </Button>
-              <Button onClick={onCancel}>Cancel</Button>
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+                <Button
+                  type="submit"
+                  themeColor="primary"
+                  disabled={!formRenderProps.allowSubmit}
+                  className="w-full sm:w-auto"
+                >
+                  {product ? 'Update' : 'Create'}
+                </Button>
+                <Button onClick={onCancel} className="w-full sm:w-auto">Cancel</Button>
+              </div>
             </DialogActionsBar>
           </FormElement>
         )}
@@ -350,20 +353,21 @@ export default function ProductManagement() {
 
   return (
     <Fade>
-      <div className="py-6 px-12  space-y-6 w-screen">
+      <div className="py-4 px-4 sm:py-6 sm:px-6 lg:px-12 space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">Product Management</h2>
-            <p className="text-gray-600 mt-1">Manage your product catalog and pricing</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Product Management</h2>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">Manage your product catalog and pricing</p>
           </div>
           <Button
             themeColor="primary"
             onClick={handleCreate}
             size="large"
             disabled={createMutation.isPending}
+            className="w-full sm:w-auto"
           >
-            <span className="flex items-center">
+            <span className="flex items-center justify-center">
             <Plus className="w-5 h-5 mr-2" />
               Add Product
             </span>
@@ -371,7 +375,7 @@ export default function ProductManagement() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total Products"
             value={stats.total}
@@ -408,7 +412,7 @@ export default function ProductManagement() {
           </CardHeader>
           <CardBody>
             <div className="space-y-3">
-              <div className="flex justify-between text-sm">
+              <div className="flex flex-col sm:flex-row sm:justify-between text-sm gap-2">
                 <span>Average: ${stats.averagePrice.toFixed(2)}</span>
                 <span>Highest: ${stats.highestPrice.toFixed(2)}</span>
               </div>
@@ -426,58 +430,62 @@ export default function ProductManagement() {
         {/* Main Grid */}
         <Card>
           <CardBody className="p-0">
-            <Grid
-              data={products}
-              style={{ height: '600px' }}
-              sortable
-              pageable={{
-                buttonCount: 5,
-                pageSizes: [10, 20, 50],
-              }}
-            >
-              <GridToolbar>
-                <div className="flex justify-between items-center w-full p-4">
-                  <span className="text-sm text-gray-600">
-                    Showing {products.length} products
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      size="small"
-                      fillMode="outline"
-                      onClick={() => refetch()}
-                      disabled={isLoading}
-                    >
-                      <span className="flex items-center">
-                      <Search className="w-4 h-4 mr-1" />
-                        Refresh
-                      </span>
-                    </Button>
+            <div className="overflow-x-auto">
+              <Grid
+                data={products}
+                style={{ height: '600px', minWidth: '600px' }}
+                sortable
+                pageable={{
+                  buttonCount: 3,
+                  pageSizes: [10, 20, 50],
+                }}
+              >
+                <GridToolbar>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full p-4 gap-2">
+                    <span className="text-sm text-gray-600">
+                      Showing {products.length} products
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        size="small"
+                        fillMode="outline"
+                        onClick={() => refetch()}
+                        disabled={isLoading}
+                      >
+                        <span className="flex items-center">
+                        <Search className="w-4 h-4 mr-1" />
+                          Refresh
+                        </span>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </GridToolbar>
-              
-              <GridColumn field="name" title="Product Name"  />
-              <GridColumn field="description" title="Description"  />
-              <GridColumn 
-                field="defaultPrice" 
-                title="Price" 
-                width="120px"
-                format="{0:c2}"
-                className="text-right font-semibold"
-              />
-              <GridColumn 
-                title="Taxes" 
-                cells={{ data: TaxesCell }}
-                filterable={false}
-                sortable={false}
-              />
-              <GridColumn
-                title="Actions"
-                cells={{ data: ActionCell }}
-                filterable={false}
-                sortable={false}
-              />
-            </Grid>
+                </GridToolbar>
+                
+                <GridColumn field="name" title="Product Name" width="200px" />
+                <GridColumn field="description" title="Description" width="250px" />
+                <GridColumn 
+                  field="defaultPrice" 
+                  title="Price" 
+                  width="120px"
+                  format="{0:c2}"
+                  className="text-right font-semibold"
+                />
+                <GridColumn 
+                  title="Taxes" 
+                  cells={{ data: TaxesCell }}
+                  filterable={false}
+                  sortable={false}
+                  width="150px"
+                />
+                <GridColumn
+                  title="Actions"
+                  cells={{ data: ActionCell }}
+                  filterable={false}
+                  sortable={false}
+                  width="120px"
+                />
+              </Grid>
+            </div>
           </CardBody>
         </Card>
 
@@ -487,8 +495,8 @@ export default function ProductManagement() {
             <Dialog
               title={editingProduct ? 'Edit Product' : 'Add New Product'}
               onClose={() => setShowDialog(false)}
-              width={700}
-              height={600}
+              width={window.innerWidth < 768 ? '95%' : 700}
+              height={window.innerWidth < 768 ? '90%' : 600}
             >
               <ProductForm
                 product={editingProduct}

@@ -4,5 +4,10 @@
 import logoUrl from "../assets/logo.svg";
 
 export default function HeadDefault() {
-  return <link rel="icon" href={logoUrl} />;
+  return (
+    <>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="icon" href={logoUrl} />
+    </>
+  );
 }

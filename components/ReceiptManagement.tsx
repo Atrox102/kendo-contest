@@ -168,8 +168,8 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
           notes: receipt?.notes || '',
         }}
         render={(formRenderProps) => (
-          <FormElement style={{ maxWidth: 700 }}>
-            <div className="grid grid-cols-2 gap-4">
+          <FormElement style={{ maxWidth: '100%' }}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <fieldset className="k-form-fieldset">
                 <legend className="k-form-legend">Receipt Details</legend>
                 
@@ -209,110 +209,106 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
                 <Field
                   name="issuerAddress"
                   component={Input}
-                  label="Address"
+                  label="Business Address"
                 />
               </fieldset>
             </div>
 
             <fieldset className="k-form-fieldset">
-              <legend className="k-form-legend">
-                Items Purchased
+              <legend className="k-form-legend">Line Items</legend>
+              
+              <div className="mb-4">
                 <Button
                   type="button"
                   onClick={addItem}
-                  className="ml-2"
-                  size="small"
-                  themeColor="primary"
                   fillMode="outline"
+                  className="w-full sm:w-auto"
                 >
-                  <Plus className="w-4 h-4 mr-1" />
+                  <Plus className="w-4 h-4 mr-2" />
                   Add Item
                 </Button>
-              </legend>
-              
+              </div>
+
               {items.map((item, index) => (
-                <Expand key={index}>
-                  <div className="border border-gray-200 p-4 mb-4 rounded-lg bg-gray-50">
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-semibold text-gray-700">Item {index + 1}</h4>
+                <div key={index} className="border p-3 sm:p-4 mb-4 rounded">
+                  {/* Basic item info */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <label className="k-label">Product</label>
+                      <DropDownList
+                        data={products}
+                        textField="name"
+                        dataItemKey="name"
+                        value={item.productName}
+                        onChange={(e) => {
+                          const product = products.find(p => p.name === e.value);
+                          updateItem(index, 'productName', e.value);
+                          if (product) {
+                            updateItem(index, 'productId', product.id);
+                            updateItem(index, 'unitPrice', product.defaultPrice);
+                          }
+                        }}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="k-label">Quantity</label>
+                      <NumericTextBox
+                        value={item.quantity}
+                        onChange={(e) => updateItem(index, 'quantity', e.value)}
+                        min={1}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="k-label">Unit Price</label>
+                      <NumericTextBox
+                        value={item.unitPrice}
+                        onChange={(e) => updateItem(index, 'unitPrice', e.value)}
+                        format="c2"
+                        min={0}
+                      />
+                    </div>
+                    
+                    <div className="flex items-end">
                       <Button
                         type="button"
-                        onClick={() => removeItem(index)}
-                        size="small"
+                        fillMode="flat"
                         themeColor="error"
-                        fillMode="outline"
+                        onClick={() => removeItem(index)}
+                        className="w-full sm:w-auto"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
-                    
-                    {/* Basic item info */}
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <label className="k-label">Product</label>
-                        <DropDownList
-                          data={products}
-                          textField="name"
-                          dataItemKey="name"
-                          value={item.productName}
-                          onChange={(e) => {
-                            const product = products.find(p => p.name === e.value);
-                            updateItem(index, 'productName', e.value);
-                            if (product) {
-                              updateItem(index, 'productId', product.id);
-                              updateItem(index, 'unitPrice', product.defaultPrice);
-                            }
-                          }}
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="k-label">Quantity</label>
-                        <NumericTextBox
-                          value={item.quantity}
-                          onChange={(e) => updateItem(index, 'quantity', e.value)}
-                          min={1}
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="k-label">Unit Price</label>
-                        <NumericTextBox
-                          value={item.unitPrice}
-                          onChange={(e) => updateItem(index, 'unitPrice', e.value)}
-                          format="c2"
-                          min={0}
-                        />
-                      </div>
-                    </div>
+                  </div>
 
-                    {/* Tax management and totals */}
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="col-span-2">
-                        <TaxManager
-                          taxes={item.taxes}
-                          subtotal={item.quantity * item.unitPrice}
-                          onChange={(taxes) => {
-                            const updatedItems = [...items];
-                            updatedItems[index] = {
-                              ...item,
-                              taxes,
-                              lineTotal: (item.quantity * item.unitPrice) + taxes.reduce((sum, tax) => sum + tax.taxAmount, 0)
-                            };
-                            setItems(updatedItems);
-                          }}
-                        />
-                      </div>
-                      
-                      <div className="flex flex-col justify-end">
-                        <label className="k-label">Line Total</label>
-                        <div className="k-textbox k-readonly text-lg font-semibold text-green-600">
-                          ${item.lineTotal.toFixed(2)}
-                        </div>
+                  {/* Tax management and totals */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="lg:col-span-2">
+                      <TaxManager
+                        taxes={item.taxes}
+                        subtotal={item.quantity * item.unitPrice}
+                        onChange={(taxes) => {
+                          const updatedItems = [...items];
+                          updatedItems[index] = {
+                            ...item,
+                            taxes,
+                            lineTotal: (item.quantity * item.unitPrice) + taxes.reduce((sum, tax) => sum + tax.taxAmount, 0)
+                          };
+                          setItems(updatedItems);
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="flex flex-col justify-end">
+                      <label className="k-label">Line Total</label>
+                      <div className="k-textbox k-readonly text-lg font-semibold">
+                        ${item.lineTotal.toFixed(2)}
                       </div>
                     </div>
                   </div>
-                </Expand>
+                </div>
               ))}
 
               <div className="border-t pt-4">
@@ -331,14 +327,17 @@ const ReceiptForm = ({ receipt, onSubmit, onCancel }: {
             />
             
             <DialogActionsBar>
-              <Button
-                type="submit"
-                themeColor="primary"
-                disabled={!formRenderProps.allowSubmit}
-              >
-                {receipt ? 'Update' : 'Create'} Receipt
-              </Button>
-              <Button onClick={onCancel}>Cancel</Button>
+              <div className="flex flex-col sm:flex-row gap-2 w-full">
+                <Button
+                  type="submit"
+                  themeColor="primary"
+                  disabled={!formRenderProps.allowSubmit}
+                  className="w-full sm:w-auto"
+                >
+                  {receipt ? 'Update' : 'Create'} Receipt
+                </Button>
+                <Button onClick={onCancel} className="w-full sm:w-auto">Cancel</Button>
+              </div>
             </DialogActionsBar>
           </FormElement>
         )}
@@ -622,20 +621,21 @@ export default function ReceiptManagement() {
 
   return (
     <Fade>
-      <div className="py-6 px-12  space-y-6 w-screen">
+      <div className="py-4 px-4 sm:py-6 sm:px-6 lg:px-12 space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">Receipt Management (B2C)</h2>
-            <p className="text-gray-600 mt-1">Manage customer receipts and transactions</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Receipt Management (B2C)</h2>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">Manage customer receipts and transactions</p>
           </div>
           <Button
             themeColor="primary"
             onClick={handleCreate}
             size="large"
             disabled={createMutation.isPending}
+            className="w-full sm:w-auto"
           >
-            <span className="flex items-center">
+            <span className="flex items-center justify-center">
               <Plus className="w-5 h-5 mr-2" />
               Create Receipt
             </span>
@@ -643,7 +643,7 @@ export default function ReceiptManagement() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total Receipts"
             value={stats.total}
@@ -680,7 +680,7 @@ export default function ReceiptManagement() {
           </CardHeader>
           <CardBody>
             <div className="space-y-3">
-              <div className="flex justify-between text-sm">
+              <div className="flex flex-col sm:flex-row sm:justify-between text-sm gap-2">
                 <span>Cash: {stats.paymentMethods.cash}</span>
                 <span>Card: {stats.paymentMethods.card}</span>
                 <span>Transfer: {stats.paymentMethods.transfer}</span>
@@ -699,58 +699,63 @@ export default function ReceiptManagement() {
         {/* Main Grid */}
         <Card>
           <CardBody className="p-0">
-            <Grid
-              data={receipts}
-              style={{ height: '600px' }}
-              sortable
-              pageable={{
-                buttonCount: 5,
-                pageSizes: [10, 20, 50],
-              }}
-            >
-              <GridToolbar>
-                <div className="flex justify-between items-center w-full p-4">
-                  <span className="text-sm text-gray-600">
-                    Showing {receipts.length} receipts
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      size="small"
-                      fillMode="outline"
-                      onClick={() => refetch()}
-                      disabled={isLoading}
-                      
-                    >
-                      <span className="flex items-center">
-                      <Search className="w-4 h-4 mr-1" />
-                      Refresh
-                      </span>
-                    </Button>
+            <div className="overflow-x-auto">
+              <Grid
+                data={receipts}
+                style={{ height: '600px', minWidth: '700px' }}
+                sortable
+                pageable={{
+                  buttonCount: 3,
+                  pageSizes: [10, 20, 50],
+                }}
+              >
+                <GridToolbar>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full p-4 gap-2">
+                    <span className="text-sm text-gray-600">
+                      Showing {receipts.length} receipts
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        size="small"
+                        fillMode="outline"
+                        onClick={() => refetch()}
+                        disabled={isLoading}
+                        
+                      >
+                        <span className="flex items-center">
+                        <Search className="w-4 h-4 mr-1" />
+                        Refresh
+                        </span>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </GridToolbar>
-              
-              <GridColumn field="receiptNumber" title="Receipt #" />
-              <GridColumn field="issuerName" title="Business" />
-              <GridColumn field="issueDate" title="Date" format="{0:d}" />
-              <GridColumn 
-                field="paymentMethod" 
-                title="Payment" 
-                cells={{ data: PaymentMethodCell }}
-              />
-              <GridColumn 
-                field="total" 
-                title="Total" 
-                format="{0:c2}"
-                className="text-right font-semibold"
-              />
-              <GridColumn
-                title="Actions"
-                cells={{ data: ActionCell }}
-                filterable={false}
-                sortable={false}
-              />
-            </Grid>
+                </GridToolbar>
+                
+                <GridColumn field="receiptNumber" title="Receipt #" width="120px" />
+                <GridColumn field="issuerName" title="Business" width="150px" />
+                <GridColumn field="issueDate" title="Date" format="{0:d}" width="120px" />
+                <GridColumn 
+                  field="paymentMethod" 
+                  title="Payment" 
+                  cells={{ data: PaymentMethodCell }}
+                  width="120px"
+                />
+                <GridColumn 
+                  field="total" 
+                  title="Total" 
+                  format="{0:c2}"
+                  className="text-right font-semibold"
+                  width="120px"
+                />
+                <GridColumn
+                  title="Actions"
+                  cells={{ data: ActionCell }}
+                  filterable={false}
+                  sortable={false}
+                  width="180px"
+                />
+              </Grid>
+            </div>
           </CardBody>
         </Card>
 
@@ -764,8 +769,8 @@ export default function ReceiptManagement() {
                 setEditingReceipt(undefined);
                 setEditingReceiptId(undefined);
               }}
-              width={700}
-              height={700}
+              width={window.innerWidth < 768 ? '95%' : 700}
+              height={window.innerWidth < 768 ? '90%' : 700}
             >
               {isLoadingFullReceipt && editingReceiptId ? (
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
