@@ -14,10 +14,12 @@ class DatabaseScheduler {
   private lastRunTime: Date | null = null;
   private runCount = 0;
   private errorCount = 0;
+  private intervalHours: number;
 
-  constructor() {
+  constructor(intervalHours: number = SCHEDULE_CONFIG.intervalHours) {
+    this.intervalHours = intervalHours;
     this.log('🚀 Database Scheduler initialized');
-    this.log(`⏰ Configured to run every ${SCHEDULE_CONFIG.intervalHours} hour(s)`);
+    this.log(`⏰ Configured to run every ${this.intervalHours} hour(s)`);
   }
 
   private log(message: string) {
@@ -92,13 +94,13 @@ class DatabaseScheduler {
     this.scheduledRun();
     
     // Schedule recurring runs
-    const intervalMs = SCHEDULE_CONFIG.intervalHours * 60 * 60 * 1000;
+    const intervalMs = this.intervalHours * 60 * 60 * 1000;
     this.intervalId = setInterval(() => {
       this.scheduledRun();
     }, intervalMs);
 
     this.log(`✅ Scheduler started successfully`);
-    this.log(`📅 Next run scheduled in ${SCHEDULE_CONFIG.intervalHours} hour(s)`);
+    this.log(`📅 Next run scheduled in ${this.intervalHours} hour(s)`);
   }
 
   stop(): void {
@@ -121,7 +123,7 @@ class DatabaseScheduler {
     nextRunTime: Date | null;
   } {
     const nextRunTime = this.lastRunTime 
-      ? new Date(this.lastRunTime.getTime() + (SCHEDULE_CONFIG.intervalHours * 60 * 60 * 1000))
+      ? new Date(this.lastRunTime.getTime() + (this.intervalHours * 60 * 60 * 1000))
       : null;
 
     return {
@@ -144,7 +146,7 @@ class DatabaseScheduler {
     console.log(`   • Next Run: ${status.nextRunTime ? status.nextRunTime.toLocaleString() : 'Not scheduled'}`);
     console.log(`   • Total Runs: ${status.runCount}`);
     console.log(`   • Total Errors: ${status.errorCount}`);
-    console.log(`   • Interval: ${SCHEDULE_CONFIG.intervalHours} hour(s)`);
+    console.log(`   • Interval: ${this.intervalHours} hour(s)`);
   }
 }
 

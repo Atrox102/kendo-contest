@@ -163,7 +163,7 @@ async function seedDatabase() {
   
   try {
     // Initialize database (run migrations if needed)
-    await initializeDatabase();
+    initializeDatabase();
     
     // Wipe existing data
     await wipeDatabase();

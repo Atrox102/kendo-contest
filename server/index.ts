@@ -3,9 +3,9 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { renderPage } from "vike/server";
-import { initializeDatabase } from "../database/db";
 import { dbHonoMiddleware } from "../lib/database-middleware";
 import { trpcHonoMiddleware } from "../lib/trpc-middleware";
+import { initializeServerDatabase, setupGracefulShutdown, getSchedulerStatus } from "./startup";
 
 const app = new Hono();
 
@@ -26,7 +26,12 @@ app.use("*", trpcHonoMiddleware);
 
 // Health check endpoint
 app.get("/api/health", (c) => {
-  return c.json({ status: "ok", timestamp: new Date().toISOString() });
+  const schedulerStatus = getSchedulerStatus();
+  return c.json({ 
+    status: "ok", 
+    timestamp: new Date().toISOString(),
+    scheduler: schedulerStatus
+  });
 });
 
 // Serve static files in production
@@ -60,14 +65,22 @@ app.all('*', async (c) => {
 
 async function startServer() {
   try {
-    // Initialize database
-    await initializeDatabase();
-    console.log("✅ Database initialized successfully");
+    // Setup graceful shutdown handlers
+    setupGracefulShutdown();
+    
+    // Initialize database, run seeding, and start scheduler
+    await initializeServerDatabase({
+      runInitialSeed: true,
+      startScheduler: true,
+      schedulerInterval: 1, // 1 hour
+      verbose: true
+    });
     
     const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
     const host = process.env.HOST || '0.0.0.0';
     
     console.log(`🚀 Server listening on http://${host}:${port}`);
+    console.log(`🔍 Health check available at http://${host}:${port}/api/health`);
     
     return serve({
       fetch: app.fetch,
