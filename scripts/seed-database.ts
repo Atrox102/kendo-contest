@@ -162,9 +162,6 @@ async function seedDatabase() {
   console.log(`📊 Configuration: ${SEED_CONFIG.products} products, ${SEED_CONFIG.invoices} invoices, ${SEED_CONFIG.receipts} receipts`);
   
   try {
-    // Initialize database (run migrations if needed)
-    initializeDatabase();
-    
     // Wipe existing data
     await wipeDatabase();
     
@@ -186,9 +183,6 @@ async function seedDatabase() {
   } catch (error) {
     console.error('💥 Database seeding failed:', error);
     process.exit(1);
-  } finally {
-    // Close database connection
-    await closeDatabase();
   }
 }
 
